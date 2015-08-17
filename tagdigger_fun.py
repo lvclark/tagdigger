@@ -32,6 +32,7 @@ def tree_one_level(num_seq):
     else:
         mysubtree = [['A',[]],['C',[]],['G',[]],['T',[]]]
         for s in num_seq:
+            assert len(s[0]) > 0, "Problematic sequence: {}.  Likely due to overlapping tags.".format(s[1])
             myind = "ACGT".find(s[0][0])
             s[0] = s[0][1:]
             mysubtree[myind][1].append(s)
@@ -135,7 +136,7 @@ def enumerate_cut_sites(cutsite):
     return cutsites
 
 def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
-                    maxreads=500000000):
+                    maxreads=500000000, tassel_tagcount = False):
     '''Make indexing trees for barcodes, cut sites, and tags, then go
     through a FASTQ file and count up instances of barcode*tag combos.'''
     
@@ -193,6 +194,9 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
         tagcount = 0
         lineindex = 0
         for line in fqcon:
+            if lineindex % 4 == 0 and tassel_tagcount:
+                # extract counts if the file is converted from a TASSEL tagCount file
+                thesecounts = int(line[line.find("count=")+6:].strip())
             if lineindex % 4 == 1: # lines with sequence
                 readscount += 1
                 line1 = line.strip().upper()
@@ -203,7 +207,10 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
                                                      tagtree)
                     if tagindex > -1: # if the sequence matches an expected tag
                         tagcount += 1
-                        mycounts[barindex][tagindex] += 1
+                        if tassel_tagcount:
+                            mycounts[barindex][tagindex] += thesecounts
+                        else:
+                            mycounts[barindex][tagindex] += 1
                 if readscount % 1000000 == 0:
                     print(fqfile)
                 if readscount % 50000 == 0:
@@ -362,6 +369,12 @@ def readTags_UNEAK_FASTA(filename, toKeep = None):
                     minlen = min(taglength1, taglength2)
                     if taglength1 != taglength2 and seq1[:minlen] == seq2[:minlen]:
                         print("{} skipped because tags cannot be distinguished.".format(tagname1[:tagname1.find("_")]))
+                        linecount += 1
+                        continue
+                    # make sure tag isn't overlapping with tag from other marker
+                    if seq1 in [s[:taglength1] for s in seqlist] or \
+                       seq2 in [s[:taglength2] for s in seqlist]:
+                        print("{} skipped because it cannot be distinguished from a different marker.".format(tagname1[:tagname1.find("_")]))
                         linecount += 1
                         continue
                     # determine differences between sequences
