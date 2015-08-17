@@ -22,7 +22,7 @@ Of course, if you are familiar with Git you can use Git to obtain the software.
 
 On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py".  
 
-Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py'.
+Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py`.
 
 The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py" for the program to work.
 
@@ -129,5 +129,7 @@ Mrker4050,2,AGTAGGGAAAGGCCGGCAAGGCAACTAAA,
 ```
 
 # Output
+
+If multiple barcodes have the sample name within and/or among libraries, the read counts will be added together for all identically-named samples.
 
 A CSV file of read counts is output, with samples in rows and tags in columns.
