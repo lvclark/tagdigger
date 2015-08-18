@@ -105,6 +105,10 @@ while tags == None:
 # summarize results
 print("{} tag sequences read.\n".format(len(tags[1])))
 
+# sanitize
+tags = tagdigger_fun.sanitizeTags(tags)
+print("{} tag sequences remain.\n".format(len(tags[1])))
+
 # read in key file
 bckeys = None
 while bckeys == None:

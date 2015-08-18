@@ -64,6 +64,9 @@ def build_sequence_tree(sequences, numseq):
 def sequence_index_lookup(sequence, seqtree):
     '''Lookup a sequence in an index tree, and get the index.  Return -1 if
        the sequence is not in the index tree.'''
+    # If we are out of sequence
+    if len(sequence) == 0:
+        return -1
     # If we get an N or something else not in ACGT:
     if sequence[0] not in {'A', 'C', 'G', 'T'}:
         return -1
@@ -371,12 +374,14 @@ def readTags_UNEAK_FASTA(filename, toKeep = None):
                         print("{} skipped because tags cannot be distinguished.".format(tagname1[:tagname1.find("_")]))
                         linecount += 1
                         continue
-                    # make sure tag isn't overlapping with tag from other marker
-                    if seq1 in [s[:taglength1] for s in seqlist] or \
-                       seq2 in [s[:taglength2] for s in seqlist]:
-                        print("{} skipped because it cannot be distinguished from a different marker.".format(tagname1[:tagname1.find("_")]))
-                        linecount += 1
-                        continue
+
+                    # make sure tag isn't overlapping with tag from other marker - move to sanitizeTags
+#                    if seq1 in [s[:taglength1] for s in seqlist] or \
+#                       seq2 in [s[:taglength2] for s in seqlist]:
+#                        print("{} skipped because it cannot be distinguished from a different marker.".format(tagname1[:tagname1.find("_")]))
+#                        linecount += 1
+#                        continue
+
                     # determine differences between sequences
                     diff = compareTags([seq1, seq2])
                     # add nucleotide to tag name
@@ -561,6 +566,36 @@ def readMarkerNames(filename):
         result = [x.replace(",", "").strip() for x in mylines if \
                   x.replace(",", "").strip() != ""]
     return result
+
+def sanitizeTags(taglist):
+    '''Eliminate tags that will cause problems from the list.  'taglist' is 
+       in the format of output from any of the readTags functions: a list of
+       two elements, with the first being a list of tag names and the 
+       second being a list of tag sequences.'''
+    assert len(taglist) == 2, "'taglist' should have two elements."
+    assert len(taglist[0]) == len(taglist[1]), \
+      "List of tag names should be the same as list of tag sequences."
+    # Don't do a check here that tag sequences are ACGT; this is done in several
+    # other places.
+    
+    print("\nSanitizing tags...")
+    # Eliminate tags that are shorter versions of other tags
+    sortedtags = sorted(taglist[1])
+    for i in range(len(sortedtags) - 1):
+        if sortedtags[i+1].startswith(sortedtags[i]): 
+            myind = taglist[1].index(sortedtags[i]) # position of this tag in the list.
+            tagname = taglist[0][myind]
+            markername = tagname[:tagname.find("_")]
+            print("Removing " + markername + " for overlap with another marker.")
+            # indexes for this marker
+            allind = [i for i in range(len(taglist[1])) if taglist[0][i].startswith(markername)]
+            allind.sort()
+            allind.reverse()
+            for i in allind: # remove elements at this index
+                print(taglist[0].pop(i))
+                print(taglist[1].pop(i))
+    return taglist
+        
 
 def combineReadCounts(countsdict, bckeys):
     '''Combine read counts across multiple libraries, merging samples with
