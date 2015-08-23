@@ -649,3 +649,56 @@ def writeCounts(filename, counts, samnames, tagnames):
             cw.writerow([samnames[s]] + counts[s])
     return
     
+def extractMarkers(tagnames):
+    '''Get marker names, allele names, and indexes from tag names.'''
+    markernames = []
+    alleleindex = []
+    for t in tagnames:
+        thismarker = t[:t.find('_')]
+        if thismarker not in markernames:
+            markernames.append(thismarker)
+            alleleindex.append([[],[]])
+            # item 0 will be allele names, item 1 will be tag indices
+        mi = markernames.index(thismarker)
+        thisallele = t[t.rfind('_') + 1:]
+        alleleindex[mi][0].append(thisallele)
+        alleleindex[mi][1].append(tagnames.index(t))
+    return [markernames, alleleindex]
+
+def writeDiploidGeno(filename, counts, samnames, tagnames):
+    '''Write numeric diploid genotypes to a CSV file.'''
+    assert len(samnames) == len(counts), "Length of samnames should be the same as length of counts."
+    assert len(tagnames) == len(counts[0]), "Length of tagnames should be length of second dimension of counts."
+    # get marker names and tag indices
+    mrkr = extractMarkers(tagnames)
+    nm = len(mrkr[0]) # number of markers
+    ns = len(samnames) # number of samples
+    try:
+        if not all(set(a[0]) <= {'0', '1'} for a in mrkr[1]):
+            raise Exception("All allele names must be '0' or '1'.")
+        # set up genotypes
+        genotypes = [['' for i in range(nm)] for j in range(ns)]
+        # fill in genotypes
+        for s in range(ns):
+            for m in range(nm):
+                counts0 = counts[s][mrkr[1][m][1][mrkr[1][m][0].index('0')]]
+                counts1 = counts[s][mrkr[1][m][1][mrkr[1][m][0].index('1')]]
+                if counts0 > 0 and counts1 == 0:
+                    genotypes[s][m] = '0'
+                if counts0 > 0 and counts1 > 0:
+                    genotypes[s][m] = '1'
+                if counts0 == 0 and counts1 > 0:
+                    genotypes[s][m] = '2'
+                    
+        with open(filename, mode = 'w', newline = '') as csvfile:
+            cw = csv.writer(csvfile)
+            # header row with marker names
+            cw.writerow([""] + mrkr[0])
+            # rows with sample name and count data
+            for s in range(ns):
+                cw.writerow([samnames[s]] + genotypes[s])
+    except IOError:
+        print("Could not write file {}.".format(filename))
+    except Exception as err:
+        print(err.args[0])
+    return None

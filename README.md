@@ -133,3 +133,5 @@ Mrker4050,2,AGTAGGGAAAGGCCGGCAAGGCAACTAAA,
 If multiple barcodes have the sample name within and/or among libraries, the read counts will be added together for all identically-named samples.
 
 A CSV file of read counts is output, with samples in rows and tags in columns.
+
+If tags represent pairs of binary SNPs, with alleles labeled '0' or '1', a CSV of numeric diploid genotypes (0, 1, 2) can optionally be written, with samples in rows and markers in columns.

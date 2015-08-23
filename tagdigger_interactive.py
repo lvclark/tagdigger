@@ -151,6 +151,16 @@ countsfile = ""
 while countsfile =="":
     countsfile = input("\nFile name for output of read counts: ").strip()
 
+# check whether these are binary SNPs, and ask whether to output as numeric genotypes
+genofile = ""
+if set([t[-1] for t in tags[0]]) == {'0', '1'}:
+    thischoice = ""
+    while thischoice not in {'Y', 'N'}:
+        thischoice = input("\nOutput CSV of diploid numeric genotypes? Y/N ").strip().upper()
+    if thischoice == 'Y':
+        while genofile == "":
+            genofile = input("File name for output of genotypes: ").strip()
+
 # Run the tag search
 input("\nPress enter to begin processing FASTQ files.")
 countsdict = dict()
@@ -167,6 +177,8 @@ combres = tagdigger_fun.combineReadCounts(countsdict, bckeys)
 tagdigger_fun.writeCounts(countsfile, combres[1], combres[0], tags[0])
 
 # Output diploid genotypes if desired
+if genofile != "":
+    tagdigger_fun.writeDiploidGeno(genofile, combres[1], combres[0], tags[0])
 
 input("\nPress enter to quit.")
     
