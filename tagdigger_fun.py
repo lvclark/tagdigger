@@ -582,7 +582,8 @@ def sanitizeTags(taglist):
     # Eliminate tags that are shorter versions of other tags
     sortedtags = sorted(taglist[1])
     for i in range(len(sortedtags) - 1):
-        if sortedtags[i+1].startswith(sortedtags[i]): 
+        if sortedtags[i+1].startswith(sortedtags[i]) and \
+           sortedtags[i] in taglist[1]: # if it is not removed yet
             myind = taglist[1].index(sortedtags[i]) # position of this tag in the list.
             tagname = taglist[0][myind]
             markername = tagname[:tagname.find("_")]
