@@ -9,6 +9,21 @@ import csv
 enzymes = {'ApeKI': 'CWGC', 'EcoT22I': 'TGCAT', 'NcoI': 'CATGG',
            'NsiI': 'TGCAT', 'PstI': 'TGCAG', 'SbfI': 'TGCAGG'}
 
+# dictionary of possible adapter sequences to find.
+# Restriction site listed first, with ^ indicating the end of genomic
+# sequence that we would expect to find.  Then top strand adapter sequence,
+# not including the restriction site overhang.  [barcode] indicates where the
+# reverse complement of the barcode should be located.
+adapters = {'PstI-MspI-Hall': [('CCG^G', # Sacks lab, designed by Megan Hall (I think)
+                                'CTCAGGCATCACTCGATTCCTCCGTCGTATGCCGTCTTCTGCTTG'),
+                               ('CTGCA^G',
+                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
+            'NsiI-MspI-Hall': [('CCG^G', # Sacks lab, NsiI, with above adapters
+                                'CTCAGGCATCACTCGATTCCTCCGTCGTATGCCGTCTTCTGCTTG'),
+                               ('ATGCA^T',
+                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')]
+            }
+
 # Function definitions.
 def combine_barcode_and_cutsite(barcodes, cutsite):
     '''Add restriction cut sites to the end of each barcode in a list,
@@ -703,3 +718,50 @@ def writeDiploidGeno(filename, counts, samnames, tagnames):
     except Exception as err:
         print(err.args[0])
     return None
+
+def reverseComplement(sequence):
+    '''Make the reverse complement of a nucleotide sequence.'''
+    x = {ord('A'): 'T', ord('C'): 'G', ord('G'): 'C', ord('T'): 'A'}
+    return(sequence.translate(x)[::-1])
+
+def findAdapterSeq(sequence, barcode, adapter = adapters["PstI-MspI-Hall"]):
+    '''Find restriction site and/or adapters in a sequence, and give an
+       index for slicing the string to remove them (or -1 to indicate not
+       found).  Function intended to be used by barcode splitting function.'''
+    # add functionality later for enzymes with multiple cut sites like ApeKI.
+    # move these asserts to higher level function
+    assert len(adapters) == 2
+    assert all([set(a[0]) <= set('ACGT^') for a in adapter])
+    assert set(adapter[0][1]) <= set('ACGT')
+    assert set(adapter[1][1]) <= set('[barcode]ACGT')
+    # first see if full restriction site is present; cut short for possible
+    # chimeric sequence.
+    if adapter[0][0].replace('^', '') in sequence:
+        return sequence.find(adapter[0][0].replace('^', '')) + \
+               len(adapter[0][0].replace('^', ''))
+    elif adapter[1][0].replace('^', '') in sequence:
+        return sequence.find(adapter[1][0].replace('^', '')) + \
+               len(adapter[1][0].replace('^', ''))
+    # then see if adapter is in sequence
+    else:
+        ls = len(sequence)
+        # check common cutter adapter
+        rl0 = adapter[0][0].find('^') # length of remains of restr. site
+        a0 = adapter[0][0][:rl0] + adapter[0][1] # sequence to search for
+        result = -1
+        lencheck = rl0 + 1
+        while result == -1 and lencheck <= ls:
+            if sequence.endswith(a0[:lencheck]):
+                result = ls - lencheck + rl0
+            lencheck += 1
+        # check rare cutter adapter
+        if result == -1:
+            rl1 = adapter[1][0].find('^')
+            a1 = adapter[1][0][:rl1] + adapter[1][1].replace('[barcode]', reverseComplement(barcode))
+            lencheck = rl1 + 1
+            while result == -1 and lencheck <= ls:
+                if sequence.endswith(a1[:lencheck]):
+                    result = ls - lencheck + rl1
+                lencheck += 1
+        return result
+        
