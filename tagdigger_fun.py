@@ -766,8 +766,8 @@ def findAdapterSeq(sequence, barcode, adapter = adapters["PstI-MspI-Hall"]):
         
 def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                     adapter = adapters["PstI-MspI-Hall"],
-                    maxreads = 100000):
-#                    maxreads=500000000):
+#                    maxreads = 100000):
+                    maxreads=500000000):
     '''Function to split one FASTQ file into multiple files by barcode,
        removing barcode and adapter sequence.'''
     # for now only allow single cut sites
