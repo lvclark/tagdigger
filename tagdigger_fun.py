@@ -21,7 +21,11 @@ adapters = {'PstI-MspI-Hall': [('CCG^G', # Sacks lab, designed by Megan Hall (I 
             'NsiI-MspI-Hall': [('CCG^G', # Sacks lab, NsiI, with above adapters
                                 'CTCAGGCATCACTCGATTCCTCCGTCGTATGCCGTCTTCTGCTTG'),
                                ('ATGCA^T',
-                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')]
+                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
+            'PstI-MspI-Poland': [('CCG^G', # DOI: 10.1371/journal.pone.0032253
+                                  'AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGATCTCGTATGCCGTCTTCTGCTTG'),
+                                 ('CTGCA^G',
+                                  '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')]
             }
 
 # Function definitions.
