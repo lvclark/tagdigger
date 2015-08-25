@@ -45,6 +45,8 @@ lib01.fasta.gz,TTGACC,KD-230-a,
 my-second-lib_fasta.txt,CCGA,foo-2705,
 ```
 
+If your FASTQ files have already been split by barcode AND the barcode sequence is removed, you can leave the Barcode column blank and simply list files and sample names.
+
 ## Tag file
 
 Tag sequences can be read in one of several different formats.  Regardless of format, the following must be true:
@@ -135,3 +137,11 @@ If multiple barcodes have the sample name within and/or among libraries, the rea
 A CSV file of read counts is output, with samples in rows and tags in columns.
 
 If tags represent pairs of binary SNPs, with alleles labeled '0' or '1', a CSV of numeric diploid genotypes (0, 1, 2) can optionally be written, with samples in rows and markers in columns.
+
+# Barcode splitter
+
+TagDigger also includes a program for splitting one FASTQ file into multiple files according to barcode.  FASTQ files can be in uncompressed or gzip format as described above.  The barcode key file should also be in the format described above, but with column headers "Input File", "Barcode", and "Output File".  Download this repository and double-click "barcode_splitter.py" to launch the program.
+
+Although the main TagDigger program works with libraries from any enzyme combination, the barcode splitter currently only supports PstI-MspI and NsiI-MspI.  Available adapter sequences include those from [Poland *et al.* (2012)](http://dx.doi.org/10.1371/journal.pone.0032253) and those used in the [Sacks lab](http://openwetware.org/wiki/Sacks:RAD-seq), designed by Megan Hall.
+
+The output FASTQ files are uncompressed, with barcodes, adapter sequence, and potentially chimeric sequence clipped out.  The second comment line for each read has the barcode appended to it.

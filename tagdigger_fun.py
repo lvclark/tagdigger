@@ -242,10 +242,6 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
             lineindex += 1
     finally:
         fqcon.close()
-            
-    # Write matrix to file
-#    with open(output, 'w') as outcon:
-#        outcon.writelines('\t'.join(str(j) for j in i) + '\n' for i in mycounts)
     return mycounts
 
 def isFastq(filename):
@@ -278,9 +274,11 @@ def isFastq(filename):
             mycon.close()
     return myresult
 
-def readBarcodeKeyfile(filename):
+def readBarcodeKeyfile(filename, forSplitter=False):
     '''Read in a csv file containing file names, barcodes, and sample names,
-       and output a dictionary containing this information.'''
+       and output a dictionary containing this information.
+       forSplitter: indicates whether this is for the barcode splitter, as
+       opposed to the tag counter.'''
     try:
         with open(filename, 'r', newline='') as mycon:
             mycsv = csv.reader(mycon)
@@ -289,9 +287,14 @@ def readBarcodeKeyfile(filename):
             for row in mycsv:
                 if rowcount == 0:
                     # read header row
-                    fi = row.index("File")
-                    bi = row.index("Barcode")
-                    si = row.index("Sample")
+                    if forSplitter:
+                        fi = row.index("Input File")
+                        bi = row.index("Barcode")
+                        si = row.index("Output File")
+                    else:
+                        fi = row.index("File")
+                        bi = row.index("Barcode")
+                        si = row.index("Sample")
                 else:
                     f = row[fi].strip() # file name
                     b = row[bi].strip().upper() # barcode
@@ -321,7 +324,10 @@ def readBarcodeKeyfile(filename):
         print("Could not read file {}.".format(filename))
         result = None
     except ValueError:
-        print("File header needed containing 'File', 'Barcode', and 'Sample'.")
+        if forSplitter:
+            print("File header needed containing 'Input File', 'Barcode', and 'Output File'.")
+        else:
+            print("File header needed containing 'File', 'Barcode', and 'Sample'.")
         result = None
     except Exception as err:
         print(err.args[0])
@@ -393,13 +399,6 @@ def readTags_UNEAK_FASTA(filename, toKeep = None):
                         print("{} skipped because tags cannot be distinguished.".format(tagname1[:tagname1.find("_")]))
                         linecount += 1
                         continue
-
-                    # make sure tag isn't overlapping with tag from other marker - move to sanitizeTags
-#                    if seq1 in [s[:taglength1] for s in seqlist] or \
-#                       seq2 in [s[:taglength2] for s in seqlist]:
-#                        print("{} skipped because it cannot be distinguished from a different marker.".format(tagname1[:tagname1.find("_")]))
-#                        linecount += 1
-#                        continue
 
                     # determine differences between sequences
                     diff = compareTags([seq1, seq2])
@@ -733,11 +732,7 @@ def findAdapterSeq(sequence, barcode, adapter = adapters["PstI-MspI-Hall"]):
        index for slicing the string to remove them (or -1 to indicate not
        found).  Function intended to be used by barcode splitting function.'''
     # add functionality later for enzymes with multiple cut sites like ApeKI.
-    # move these asserts to higher level function
-    assert len(adapters) == 2
-    assert all([set(a[0]) <= set('ACGT^') for a in adapter])
-    assert set(adapter[0][1]) <= set('ACGT')
-    assert set(adapter[1][1]) <= set('[barcode]ACGT')
+
     # first see if full restriction site is present; cut short for possible
     # chimeric sequence.
     if adapter[0][0].replace('^', '') in sequence:
@@ -769,3 +764,69 @@ def findAdapterSeq(sequence, barcode, adapter = adapters["PstI-MspI-Hall"]):
                 lencheck += 1
         return result
         
+def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
+                    adapter = adapters["PstI-MspI-Hall"],
+                    maxreads = 100000):
+#                    maxreads=500000000):
+    '''Function to split one FASTQ file into multiple files by barcode,
+       removing barcode and adapter sequence.'''
+    # for now only allow single cut sites
+    assert set(cutsite) <= set('ACGT'), "Only ACGT cut sites allowed."
+    assert all([set(bc) <= set('ACGT') for bc in barcodes]), "Found non-ACGT barcodes."
+    # check adapter info
+    assert len(adapter) == 2
+    assert all([set(a[0]) <= set('ACGT^') for a in adapter])
+    assert set(adapter[0][1]) <= set('ACGT')
+    assert set(adapter[1][1]) <= set('[barcode]ACGT')
+    # barcodes setup
+    barlen = [len(bc) for bc in barcodes]
+    barcut = combine_barcode_and_cutsite(barcodes, cutsite)
+    barcuttree = build_sequence_tree(barcut, len(barcut))
+
+    # start search through sequence
+    if inputFile[-2:].lower() == 'gz':
+        fqcon = gzip.open(inputFile, 'rt')
+    else:
+        fqcon = open(inputFile, 'r')
+    readscount = 0
+    barcutcount = 0
+    clippedcount = 0
+    lineindex = 0
+    try:
+        for line in fqcon:
+            if lineindex % 4 == 0:
+                comment1 = line
+            if lineindex % 4 == 1:
+                sequence = line.strip().upper()
+            if lineindex % 4 == 2:
+                comment2 = line.strip()
+            if lineindex % 4 == 3:
+                readscount += 1
+                quality = line.strip()
+                barindex = sequence_index_lookup(sequence, barcuttree)
+                if barindex > -1: # if it matches a barcode
+                    barcutcount += 1
+                    # get indexes for clipping sequence
+                    slice1 = barlen[barindex]
+                    slice2 = findAdapterSeq(sequence, barcodes[barindex],
+                                            adapter = adapter)
+                    if slice2 == -1: # if no trimming from right side is necessary
+                        slice2 = len(sequence)
+                    else:
+                        clippedcount += 1
+                    # write clipped output
+                    with open(outputFiles[barindex], mode = 'a') as outcon:
+                        outcon.write(comment1)
+                        outcon.write(sequence[slice1:slice2] + '\n')
+                        outcon.write("{0} {1}\n".format(comment2, barcodes[barindex]))
+                        outcon.write(quality[slice1:slice2] + '\n')
+            lineindex += 1
+            if readscount % 1000000 == 0:
+                print(inputFile)
+            if readscount % 50000 == 0:
+                print("Reads: {0} With barcode and cut site: {1} Clipped on 3' end: {2}".format(readscount, barcutcount, clippedcount))
+            if readscount >= maxreads:
+                break
+    finally:
+        fqcon.close()
+    return None
