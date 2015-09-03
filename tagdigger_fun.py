@@ -28,6 +28,14 @@ adapters = {'PstI-MspI-Hall': [('CCG^G', # Sacks lab, designed by Megan Hall (I 
                                   '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')]
             }
 
+# codes for ambiguous nucleotides
+IUPAC_codes = {frozenset('AG'): 'R', frozenset('CT'): 'Y',
+               frozenset('GT'): 'K', frozenset('AC'): 'M',
+               frozenset('CG'): 'S', frozenset('AT'): 'W',
+               frozenset('CGT'): 'B', frozenset('AGT'): 'D',
+               frozenset('ACT'): 'H', frozenset('ACG'): 'V',
+               frozenset('ACGT'): 'N'}
+
 # Function definitions.
 def combine_barcode_and_cutsite(barcodes, cutsite):
     '''Add restriction cut sites to the end of each barcode in a list,
@@ -829,4 +837,43 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                 break
     finally:
         fqcon.close()
+    return None
+
+
+
+def exportFasta(filename, namelist, seqlist):
+    '''Function to take a list of tags and export to a FASTA file for use in
+       an alignment program such as Bowtie2 or BLAST.  For multiple tags
+       belonging to one marker, include ambiguous nucleotide codes.'''
+    assert len(namelist) == len(seqlist), "List of marker names and list of tag sequences should be same length."
+    assert all([set(t) <= set('ACGT') for t in seqlist]), "Tag sequences need to be ACGT."
+
+    # get indexes of alleles by marker
+    markerindex = extractMarkers(namelist)
+
+    try:
+        with open(filename, mode='w') as mycon:
+            for mi in range(len(markerindex[0])): # loop through markers
+                # write comment line with marker name
+                mycon.write('>' + markerindex[0][mi] + '\n')
+                # get list of tags for this marker
+                mtags = [seqlist[i] for i in markerindex[1][mi][1]]
+                if len(mtags) == 1: # if non-variable
+                    mycon.write(mtags[0] + '\n')
+                else: 
+                    # find variable sites
+                    ctags = compareTags(mtags)
+                    # write the first non-variable portion of the tag
+                    mycon.write(mtags[0][:ctags[0][0]])
+                    # cycle through variable sites and the following sequence
+                    for c in range(len(ctags)):
+                        mycon.write(IUPAC_codes[frozenset(ctags[c][1])])
+                        if c == len(ctags)-1:
+                            mycon.write(mtags[0][ctags[c][0] + 1:])
+                        else:
+                            mycon.write(mtags[0][ctags[c][0] + 1:ctags[c+1][0]])
+                    mycon.write('\n')
+                        
+    except IOError:
+        print("Could not write file {}.".format(filename))
     return None
