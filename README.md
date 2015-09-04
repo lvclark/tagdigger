@@ -144,4 +144,4 @@ TagDigger also includes a program for splitting one FASTQ file into multiple fil
 
 Although the main TagDigger program works with libraries from any enzyme combination, the barcode splitter currently only supports PstI-MspI and NsiI-MspI.  Available adapter sequences include those from [Poland *et al.* (2012)](http://dx.doi.org/10.1371/journal.pone.0032253) and those used in the [Sacks lab](http://openwetware.org/wiki/Sacks:RAD-seq), designed by Megan Hall.
 
-The output FASTQ files are uncompressed, with barcodes, adapter sequence, and potentially chimeric sequence clipped out.  The second comment line for each read has the barcode appended to it.
+The output FASTQ files are uncompressed, with barcodes, adapter sequence, and potentially chimeric sequence clipped out.  The comment line for each read has the barcode appended to it.

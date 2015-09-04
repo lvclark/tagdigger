@@ -803,7 +803,7 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     try:
         for line in fqcon:
             if lineindex % 4 == 0:
-                comment1 = line
+                comment1 = line.strip()
             if lineindex % 4 == 1:
                 sequence = line.strip().upper()
             if lineindex % 4 == 2:
@@ -824,17 +824,20 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                         clippedcount += 1
                     # write clipped output
                     with open(outputFiles[barindex], mode = 'a') as outcon:
-                        outcon.write(comment1)
+                        outcon.write(comment1 + barcodes[barindex] + '\n')
                         outcon.write(sequence[slice1:slice2] + '\n')
-                        outcon.write("{0} {1}\n".format(comment2, barcodes[barindex]))
+                        if comment2 == '+':
+                            outcon.write('+\n')
+                        else:
+                            outcon.write(comment1 + barcodes[barindex] + '\n')
                         outcon.write(quality[slice1:slice2] + '\n')
+                if readscount % 1000000 == 0:
+                    print(inputFile)
+                if readscount % 50000 == 0:
+                    print("Reads: {0} With barcode and cut site: {1} Clipped on 3' end: {2}".format(readscount, barcutcount, clippedcount))
+                if readscount >= maxreads:
+                    break
             lineindex += 1
-            if readscount % 1000000 == 0:
-                print(inputFile)
-            if readscount % 50000 == 0:
-                print("Reads: {0} With barcode and cut site: {1} Clipped on 3' end: {2}".format(readscount, barcutcount, clippedcount))
-            if readscount >= maxreads:
-                break
     finally:
         fqcon.close()
     return None
