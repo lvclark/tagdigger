@@ -71,7 +71,7 @@ for i in thisdircontents:
 # read in key file
 bckeys = None
 while bckeys == None:
-    bckeys = tagdigger_fun.readBarcodeKeyfile(input("Name of key file with barcodes: ").strip(), forSplitter=True)
+    bckeys = tagdigger_fun.readBarcodeKeyfile(input("\nName of key file with barcodes: ").strip(), forSplitter=True)
 # summarize
 fqfiles = sorted(bckeys.keys())
 for f in fqfiles:
