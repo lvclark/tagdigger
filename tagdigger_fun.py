@@ -735,42 +735,70 @@ def reverseComplement(sequence):
     x = {ord('A'): 'T', ord('C'): 'G', ord('G'): 'C', ord('T'): 'A'}
     return(sequence.translate(x)[::-1])
 
-def findAdapterSeq(sequence, barcode, adapter = adapters["PstI-MspI-Hall"]):
+def build_adapter_tree(adapter, barcodes):
+    '''Build a set of indexing trees, one for each barcode, for rapidly
+       searching for adapter sequence at the end of a sequence.  Return
+       each tree as well as a list of indices for slicing the sequences.
+       Note that the sequences are reversed, in order to search from the
+       end of a sequence.'''
+    # common cutter adapter
+    rl0 = adapter[0][0].find('^') # length of remains of restr. site
+    a0 = adapter[0][0][:rl0] + adapter[0][1] # sequence to search for
+    a0rev = a0[::-1] # reverse sequence
+    # all potential portions of adapter sequence that could be found
+    a0slices = [a0rev[i:] for i in range(len(a0rev) - rl0)]
+    # index for slicing out adapter sequence of that length
+    a0ind = [0 - len(a) + rl0 for a in a0slices]
+
+    result = []
+    # loop through rare cutter adapter with all barcodes
+    for bi in range(len(barcodes)):
+        rl1 = adapter[1][0].find('^')
+        a1 = adapter[1][0][:rl1] + \
+             adapter[1][1].replace('[barcode]', reverseComplement(barcodes[bi]))
+        a1rev = a1[::-1]
+        a1slices = [a1rev[i:] for i in range(len(a1rev) - rl1)]
+        a1ind = [0 - len(a) + rl1 for a in a1slices]
+        # build tree and add slicing indices
+        result.append([build_sequence_tree(a0slices + a1slices, \
+                                           len(a0slices + a1slices)),
+                       a0ind + a1ind])
+    return result
+
+def findAdapterSeq(sequence, adaptertree, fullsite0, fullsite1, searchstart):
     '''Find restriction site and/or adapters in a sequence, and give an
-       index for slicing the string to remove them (or -1 to indicate not
-       found).  Function intended to be used by barcode splitting function.'''
+       index for slicing the string to remove them (or 999 to indicate not
+       found).  Function intended to be used by barcode splitting function.
+       'adaptertree' is a list of two elements, where the first is an indexing
+       tree and the second is a list of indexes for each sequence to be used
+       for slicing out the adapter; it is one element of the output of
+       build_adapter_tree, for the appropriate barcode.
+       'fullsite0' and 'fullsite1' are the full restriction sites for the common
+       and rare cutters, respectively.'''
     # add functionality later for enzymes with multiple cut sites like ApeKI.
 
     # first see if full restriction site is present; cut short for possible
-    # chimeric sequence.
-    if adapter[0][0].replace('^', '') in sequence:
-        return sequence.find(adapter[0][0].replace('^', '')) + \
-               len(adapter[0][0].replace('^', ''))
-    elif adapter[1][0].replace('^', '') in sequence:
-        return sequence.find(adapter[1][0].replace('^', '')) + \
-               len(adapter[1][0].replace('^', ''))
-    # then see if adapter is in sequence
-    else:
-        ls = len(sequence)
-        # check common cutter adapter
-        rl0 = adapter[0][0].find('^') # length of remains of restr. site
-        a0 = adapter[0][0][:rl0] + adapter[0][1] # sequence to search for
-        result = -1
-        lencheck = rl0 + 1
-        while result == -1 and lencheck <= ls:
-            if sequence.endswith(a0[:lencheck]):
-                result = ls - lencheck + rl0
-            lencheck += 1
-        # check rare cutter adapter
-        if result == -1:
-            rl1 = adapter[1][0].find('^')
-            a1 = adapter[1][0][:rl1] + adapter[1][1].replace('[barcode]', reverseComplement(barcode))
-            lencheck = rl1 + 1
-            while result == -1 and lencheck <= ls:
-                if sequence.endswith(a1[:lencheck]):
-                    result = ls - lencheck + rl1
-                lencheck += 1
-        return result
+    # chimeric sequence. Returns a positive index.
+    rs0 = sequence.find(fullsite0, searchstart)
+    rs1 = sequence.find(fullsite1, searchstart)
+
+    # If full restriction site note present, see if adapter is in sequence.
+    # Return a negative index if so.
+    if rs0 == -1 and rs1 == -1:
+        adLookup = sequence_index_lookup(sequence[::-1], adaptertree[0])
+        if adLookup == -1: # adapter not found
+            return 999
+        else:
+            return adaptertree[1][adLookup]
+    elif rs1 == -1: # if only the common cutter site is present
+        return rs0 + len(fullsite0)
+    elif rs0 == -1: # if only the rare cutter site is present
+        return rs1 + len(fullsite1)
+    elif rs0 < rs1: # if both are present but common cutter comes first
+        return rs0 + len(fullsite0)
+    else: # if both are present but rare cutter comes first
+        return rs1 + len(fullsite1)
+
         
 def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                     adapter = adapters["PstI-MspI-Hall"],
@@ -790,6 +818,12 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     barlen = [len(bc) for bc in barcodes]
     barcut = combine_barcode_and_cutsite(barcodes, cutsite)
     barcuttree = build_sequence_tree(barcut, len(barcut))
+    cutlen = len(cutsite)
+    # adapter tree setup
+    adaptertrees = build_adapter_tree(adapter, barcodes)
+    # full cutsite setup
+    fullsite0 = adapter[0][0].replace('^', '')
+    fullsite1 = adapter[1][0].replace('^', '')
 
     # start search through sequence
     if inputFile[-2:].lower() == 'gz':
@@ -816,9 +850,9 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                     barcutcount += 1
                     # get indexes for clipping sequence
                     slice1 = barlen[barindex]
-                    slice2 = findAdapterSeq(sequence, barcodes[barindex],
-                                            adapter = adapter)
-                    if slice2 == -1: # if no trimming from right side is necessary
+                    slice2 = findAdapterSeq(sequence, adaptertrees[barindex],
+                                            fullsite0, fullsite1, slice1+cutlen)
+                    if slice2 == 999: # if no trimming from right side is necessary
                         slice2 = len(sequence)
                     else:
                         clippedcount += 1
