@@ -814,6 +814,9 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     assert all([set(a[0]) <= set('ACGT^') for a in adapter])
     assert set(adapter[0][1]) <= set('ACGT')
     assert set(adapter[1][1]) <= set('[barcode]ACGT')
+
+    print("Building indices for rapid searching...")
+    
     # barcodes setup
     barlen = [len(bc) for bc in barcodes]
     barcut = combine_barcode_and_cutsite(barcodes, cutsite)
@@ -825,6 +828,9 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     fullsite0 = adapter[0][0].replace('^', '')
     fullsite1 = adapter[1][0].replace('^', '')
 
+    print("Done with indexing setup.")
+    print(inputFile)
+
     # start search through sequence
     if inputFile[-2:].lower() == 'gz':
         fqcon = gzip.open(inputFile, 'rt')
@@ -834,6 +840,7 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     barcutcount = 0
     clippedcount = 0
     lineindex = 0
+    outcons = [open(outfile, mode = 'w') for outfile in outputFiles]
     try:
         for line in fqcon:
             if lineindex % 4 == 0:
@@ -857,14 +864,13 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                     else:
                         clippedcount += 1
                     # write clipped output
-                    with open(outputFiles[barindex], mode = 'a') as outcon:
-                        outcon.write(comment1 + barcodes[barindex] + '\n')
-                        outcon.write(sequence[slice1:slice2] + '\n')
-                        if comment2 == '+':
-                            outcon.write('+\n')
-                        else:
-                            outcon.write(comment1 + barcodes[barindex] + '\n')
-                        outcon.write(quality[slice1:slice2] + '\n')
+                    outcons[barindex].write(comment1 + barcodes[barindex] + '\n')
+                    outcons[barindex].write(sequence[slice1:slice2] + '\n')
+                    if comment2 == '+':
+                        outcons[barindex].write('+\n')
+                    else:
+                        outcons[barindex].write(comment1 + barcodes[barindex] + '\n')
+                    outcons[barindex].write(quality[slice1:slice2] + '\n')
                 if readscount % 1000000 == 0:
                     print(inputFile)
                 if readscount % 50000 == 0:
@@ -874,6 +880,8 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
             lineindex += 1
     finally:
         fqcon.close()
+        for o in outcons:
+            o.close()
     return None
 
 
