@@ -3,6 +3,7 @@
 
 import gzip
 import csv
+import hashlib
 
 # dictionary of restriction enzyme cut sites, including only what will show
 # up after the barcode.
@@ -921,4 +922,22 @@ def exportFasta(filename, namelist, seqlist):
                         
     except IOError:
         print("Could not write file {}.".format(filename))
+    return None
+
+def writeMD5sums(filelist, outfile):
+    '''Write a CSV of file names and MD5 checksums, given a list of file names.'''
+    maxfilelen = max([len(f) for f in filelist])
+    with open(outfile, mode='w', newline = '') as csvcon:
+        cw = csv.writer(csvcon)
+        cw.writerow(["File name", "MD5 sum"])
+        for f in filelist:
+            m = hashlib.md5() # variable to contain MD5 sum
+            with open(f, 'rb') as fqcon:
+                while True:
+                    chunk = fqcon.read(50 * 1048576) # read 50 Mb at a time
+                    if chunk == b'': # end of file
+                        break
+                    m.update(chunk)
+            cw.writerow([f, m.hexdigest()])
+            print("{:>{width}} {}".format(f, m.hexdigest(), width=maxfilelen))
     return None

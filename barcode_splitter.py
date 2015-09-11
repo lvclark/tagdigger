@@ -105,11 +105,30 @@ directory, or 3 to try reading the same FASTQ files again: ''').strip()
         os.chdir(dirchoice)
     fqok = [tagdigger_fun.isFastq(f) for f in fqfiles]
 
+# ask if MD5 checksums should be calculated
+print('')
+md5choice = ""
+while md5choice not in {'Y', 'N'}:
+    md5choice = input("Create a CSV file of MD5 checksums? (y/n) ").strip().upper()
+if md5choice == 'Y':
+    md5outfile = ''
+    while md5outfile == '':
+        md5outfile = input("Name of output CSV file to contain MD5 checksums: ").strip()
+        
+
 input("\nPress enter to begin processing files.")
 
 # go through files
 for f in fqfiles:
     tagdigger_fun.barcodeSplitter(f, bckeys[f][0], bckeys[f][1], cutsite = cutsite,
                                   adapter = tagdigger_fun.adapters[adaptchoice])
+
+# calculate MD5 checksums
+if md5choice == 'Y':
+    filelist = []
+    for f in fqfiles:
+        filelist += bckeys[f][1]
+    tagdigger_fun.writeMD5sums(filelist, md5outfile)
+    
 
 input("\nPress enter to quit.")
