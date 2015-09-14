@@ -885,7 +885,23 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
             o.close()
     return None
 
-
+def writeMD5sums(filelist, outfile):
+    '''Write a CSV of file names and MD5 checksums, given a list of file names.'''
+    maxfilelen = max([len(f) for f in filelist])
+    with open(outfile, mode='w', newline = '') as csvcon:
+        cw = csv.writer(csvcon)
+        cw.writerow(["File name", "MD5 sum"])
+        for f in filelist:
+            m = hashlib.md5() # variable to contain MD5 sum
+            with open(f, 'rb') as fqcon:
+                while True:
+                    chunk = fqcon.read(50 * 1048576) # read 50 Mb at a time
+                    if chunk == b'': # end of file
+                        break
+                    m.update(chunk)
+            cw.writerow([f, m.hexdigest()])
+            print("{:>{width}} {}".format(f, m.hexdigest(), width=maxfilelen))
+    return None
 
 def exportFasta(filename, namelist, seqlist):
     '''Function to take a list of tags and export to a FASTA file for use in
@@ -924,20 +940,25 @@ def exportFasta(filename, namelist, seqlist):
         print("Could not write file {}.".format(filename))
     return None
 
-def writeMD5sums(filelist, outfile):
-    '''Write a CSV of file names and MD5 checksums, given a list of file names.'''
-    maxfilelen = max([len(f) for f in filelist])
-    with open(outfile, mode='w', newline = '') as csvcon:
-        cw = csv.writer(csvcon)
-        cw.writerow(["File name", "MD5 sum"])
-        for f in filelist:
-            m = hashlib.md5() # variable to contain MD5 sum
-            with open(f, 'rb') as fqcon:
-                while True:
-                    chunk = fqcon.read(50 * 1048576) # read 50 Mb at a time
-                    if chunk == b'': # end of file
-                        break
-                    m.update(chunk)
-            cw.writerow([f, m.hexdigest()])
-            print("{:>{width}} {}".format(f, m.hexdigest(), width=maxfilelen))
-    return None
+def readSAM(filename):
+    '''Read in a SAM file of alignment information for markers.  Return a 
+       dictionary, with marker names as the keys, and tuples of reference
+       sequences, positions, and quality scores as the items.'''
+    result = dict()
+    try:
+        with open(filename, mode='r') as mycon:
+            for line in mycon:
+                if line[0] == '@': # skip headers
+                    continue
+                mycolumns = line.split()
+                myflags = int(mycolumns[1])
+                # skip if no alignment (4 flag)
+                if myflags - 4 in {0, 1, 2, 8, 16, 32, 64, 128}:
+                    continue
+                # column 1 is marker name, 3 is chromosome, 4 is position, 5 is quality
+                result[mycolumns[0]] = (mycolumns[2], mycolumns[3], mycolumns[4])
+        return result
+    except IOError:
+        print("Could not read file {}.".format(filename))
+        return None
+

@@ -6,7 +6,8 @@ TagDigger v. 0.0 Tag Manager
 Copyright Lindsay V. Clark
 ''')
 
-# Need function to export tags in merged format.
+# Need to confirm that marker names contain no spaces, for
+# alignment purposes.
 # Adjust function for finding adapter sequence so that
 # it doesn't look for barcoded adapter when looking at tags.
 
