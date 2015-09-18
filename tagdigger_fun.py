@@ -594,6 +594,56 @@ def readMarkerNames(filename):
                   x.replace(",", "").strip() != ""]
     return result
 
+def readTags_interactive():
+    '''Interactively read in sequence tags.  To be used by tagdigger and
+      tag manager.'''
+    # read in optional file of marker names
+    toKeep = None
+    print('''
+Do you wish to supply a list of marker names?  If provided, this list
+will be used to subset the list of markers in the tag file.''')
+    thischoice = ""
+    while thischoice.upper() not in {'Y', 'N'}:
+        thischoice = input("Y/N: ").strip()
+    print("")
+    if thischoice.upper() == 'Y':
+        while toKeep == None:
+            toKeep = readMarkerNames(input("File name: ").strip())
+        # summarize file of marker names
+        print('''
+File contains {} marker names.'''.format(len(toKeep)))
+        for i in range(min(10, len(toKeep))):
+            print(toKeep[i])
+        if len(toKeep) > 10:
+            print('...')
+
+    # list tag file formats:
+    print('''
+Available tag file formats are:
+  1: UNEAK FASTA
+  2: Merged tags
+  3: Tags in columns
+  4: Tags in rows
+''')
+    tagfunctions = {'1': readTags_UNEAK_FASTA,
+                    '2': readTags_Merged,
+                    '3': readTags_Columns,
+                    '4': readTags_Rows}
+
+    # choose format and read tag file
+    tags = None
+    while tags == None:
+        thischoice = '0'
+        while thischoice not in {'1', '2', '3', '4'}:
+            thischoice = input("Enter the number of the format of your tag file: ").strip()
+        tagfile = input("Enter the file name: ").strip()
+        tags = tagfunctions[thischoice](tagfile, toKeep = toKeep)
+        print('')
+    # summarize results
+    print("{} tag sequences read.\n".format(len(tags[1])))
+
+    return tags
+
 def sanitizeTags(taglist):
     '''Eliminate tags that will cause problems from the list.  'taglist' is 
        in the format of output from any of the readTags functions: a list of
