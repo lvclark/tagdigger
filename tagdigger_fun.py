@@ -4,6 +4,13 @@
 import gzip
 import csv
 import hashlib
+import os
+import sys
+
+# confirm that Python 3 is being used.
+if sys.version_info.major < 3:
+    print("Python 3 required.  You appear to be using an older version of Python.")
+    raise Exception("Python 3 required.")
 
 # dictionary of restriction enzyme cut sites, including only what will show
 # up after the barcode.
@@ -966,8 +973,12 @@ def exportFasta(filename, namelist, seqlist):
     try:
         with open(filename, mode='w') as mycon:
             for mi in range(len(markerindex[0])): # loop through markers
+                markername = markerindex[0][mi]
+                # forbid spaces in marker names (will screw with Bowtie2)
+                if ' ' in markername:
+                    raise Exception("{}: Marker names cannot contain spaces.".format(markername))
                 # write comment line with marker name
-                mycon.write('>' + markerindex[0][mi] + '\n')
+                mycon.write('>' + markername + '\n')
                 # get list of tags for this marker
                 mtags = [seqlist[i] for i in markerindex[1][mi][1]]
                 if len(mtags) == 1: # if non-variable
@@ -988,6 +999,9 @@ def exportFasta(filename, namelist, seqlist):
                         
     except IOError:
         print("Could not write file {}.".format(filename))
+    except Exception as err:
+        print(err.args[0])
+        os.remove(filename)
     return None
 
 def readSAM(filename):
