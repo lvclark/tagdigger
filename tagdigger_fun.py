@@ -788,6 +788,7 @@ def writeDiploidGeno(filename, counts, samnames, tagnames):
         print(err.args[0])
     return None
 
+## Additional functions for barcode splitter ##
 def reverseComplement(sequence):
     '''Make the reverse complement of a nucleotide sequence.'''
     x = {ord('A'): 'T', ord('C'): 'G', ord('G'): 'C', ord('T'): 'A'}
@@ -960,6 +961,7 @@ def writeMD5sums(filelist, outfile):
             print("{:>{width}} {}".format(f, m.hexdigest(), width=maxfilelen))
     return None
 
+## Additional functions for tag manager ##
 def exportFasta(filename, namelist, seqlist):
     '''Function to take a list of tags and export to a FASTA file for use in
        an alignment program such as Bowtie2 or BLAST.  For multiple tags
@@ -1026,3 +1028,27 @@ def readSAM(filename):
         print("Could not read file {}.".format(filename))
         return None
 
+def mergeTags(tag0, tag1):
+    '''Given two sequences, produce an output string in "merged" format,
+       with square brackets surrounding the variable region and a forward
+       slash separating the two variants.'''
+    # make sure tags are same length
+    if len(tag0) != len(tag1):
+        minlen = min([len(tag0), len(tag1)])
+        tag0 = tag0[:minlen]
+        tag1 = tag1[:minlen]
+    x = compareTags([tag0, tag1]) # has assert to check ACGT
+    assert len(x) > 0, "Both tags in pair are identical."
+    variantpositions = [y[0] for y in x]
+    minvar = min(variantpositions)
+    maxvar = max(variantpositions)
+    # get invariant portions of tags
+    invarstart = tag0[:minvar]
+    invarend = tag0[maxvar + 1:]
+    # get variant portions
+    var0 = ''
+    var1 = ''
+    for i in range(minvar, maxvar+1):
+        var0 = var0 + tag0[i]
+        var1 = var1 + tag1[i]
+    return invarstart + '[' + var0 + '/' + var1 + ']' + invarend
