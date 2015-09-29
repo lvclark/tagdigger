@@ -1,4 +1,5 @@
 import tagdigger_fun
+import math
 
 # Welcome message
 print('''
@@ -25,12 +26,13 @@ while whichprog not in set('1234'):
 
 # Look up markers in existing database
 if whichprog == '1':
+    tags = tagdigger_fun.readTags_interactive()
 # Export table with marker names from input in first column,
 # user-selected columns from database in remaining columns.
-    pass
 
 # Add markers to existing database
 if whichprog == '2':
+    tags = tagdigger_fun.readTags_interactive()
 # option to also add any tabular data
 # option to make fasta file for unaligned  markers
 # what to do with conflicting tabular data
@@ -44,8 +46,24 @@ if whichprog == '3':
 
 # Start new database
 if whichprog == '4':
+    tags = tagdigger_fun.readTags_interactive()
+    markers = tagdigger_fun.mergedTagList(tags)
+    nMrkr = len(markers[0]) # number of markers
+    minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
+
+    print('''Markers will be given names in the format Abcde000001.''')
+    print('''It is recommended that marker names not include spaces.''')
+    mrkrPrefix = ""
+    while mrkrPrefix == "":
+        mrkrPrefix = input('Prefix for marker names to output ("Abcde" in the above example): ').strip()
+    numDig = 0
+    while numDig < minDig:
+        numDig = int(input('Number of digits for numbering markers (6 in the above example): ').strip())
+
+    # generate marker names
+    markerNames = ["{}{:0>}".format(mrkrPrefix, i) for i in range(1, nMrkr+1)]
+    
 # optionally make fasta file for alignment 
 # optionally add tabular data.
-    pass
 
 input("Press enter to quit.")
