@@ -42,7 +42,9 @@ IUPAC_codes = {frozenset('AG'): 'R', frozenset('CT'): 'Y',
                frozenset('CG'): 'S', frozenset('AT'): 'W',
                frozenset('CGT'): 'B', frozenset('AGT'): 'D',
                frozenset('ACT'): 'H', frozenset('ACG'): 'V',
-               frozenset('ACGT'): 'N'}
+               frozenset('ACGT'): 'N',
+               frozenset('A'): 'A', frozenset('C'): 'C',
+               frozenset('G'): 'G', frozenset('T'): 'T'}
 
 # Function definitions.
 def combine_barcode_and_cutsite(barcodes, cutsite):
@@ -788,6 +790,26 @@ def writeDiploidGeno(filename, counts, samnames, tagnames):
         print(err.args[0])
     return None
 
+def set_directory_interactive():
+    '''Allow user to change working directory.'''
+    currentdir = os.getcwd()
+    print("\nCurrent directory is:")
+    print(currentdir)
+    thischoice = ""
+    while thischoice.upper() not in {'Y', 'N'}:
+        thischoice = input("Use different directory for reading and writing files? (y/n) ").strip()
+    if thischoice.upper() == 'Y':
+        dirchoice = ""
+        while not os.path.isdir(dirchoice):
+            dirchoice = input("New directory: ")
+        os.chdir(dirchoice)
+
+    print("\nContents of current directory:")
+    thisdircontents = os.listdir('.')
+    for i in thisdircontents:
+        print(i)
+    return None
+
 ## Additional functions for barcode splitter ##
 def reverseComplement(sequence):
     '''Make the reverse complement of a nucleotide sequence.'''
@@ -1074,3 +1096,40 @@ def mergedTagList(tags):
     except Exception as err:
         print(err.args[0])
         return None
+
+def exportFasta2(filename, markernames, mergedstrings):
+    '''Take the merged tag strings produced by mergedTagList and write a FASTA
+       file for alignment with software such as Bowtie2 or BLAST.  Use IUPAC
+       codes for variable nucleotides.'''
+    assert len(markernames) == len(mergedstrings), \
+           "Must have same number of marker names and merged strings."
+    try:
+        with open(filename, mode='w') as mycon:
+            for i in range(len(markernames)):
+                if ' ' in markernames[i]:
+                    raise Exception("{}: Marker names cannot contain spaces.".format(markernames[i]))
+                thisstring = mergedstrings[i]
+                if not set(thisstring) <= set('[/]ACGT'):
+                    raise Exception("{}: Unexpected character in merged string.".format(markernames[i]))
+                if not set('[/]') < set(thisstring):
+                    raise Exception("{}: Square brackets and slash not found.".format(markernames[i]))
+                mycon.write('>' + markernames[i] + '\n') # comment line
+                p1 = thisstring.find('[')
+                p2 = thisstring.find('/')
+                p3 = thisstring.find(']')
+                if p1 > p2 or p2 > p3:
+                    raise Exception("{}: Square brackets and slash in wrong order.".format(markernames[i]))
+                mycon.write(thisstring[:p1]) # first non-variable section
+                var1 = thisstring[p1+1:p2]
+                var2 = thisstring[p2+1:p3]
+                if len(var1) != len(var2):
+                    raise Exception("{}: Variable regions are of different lengths.".format(markernames[i]))
+                for j in range(len(var1)): # variable section
+                    mycon.write(IUPAC_codes[frozenset({var1[j], var2[j]})])
+                mycon.write(thisstring[p3+1:] + '\n') # last non-variable section
+    except IOError:
+        print("Could not write file {}.".format(filename))
+    except Exception as err:
+        print(err.args[0])
+        os.remove(filename)
+    return None

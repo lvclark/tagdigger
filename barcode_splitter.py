@@ -51,22 +51,7 @@ while adaptchoice not in adaptersets:
     adaptchoice = input("Choose an adapter set: ").strip()
 
 # set working directory for finding files
-currentdir = os.getcwd()
-print("\nCurrent directory is:")
-print(currentdir)
-thischoice = ""
-while thischoice.upper() not in {'Y', 'N'}:
-    thischoice = input("Use different directory for reading and writing files? (y/n) ").strip()
-if thischoice.upper() == 'Y':
-    dirchoice = ""
-    while not os.path.isdir(dirchoice):
-        dirchoice = input("New directory: ")
-    os.chdir(dirchoice)
-
-print("\nContents of current directory:")
-thisdircontents = os.listdir('.')
-for i in thisdircontents:
-    print(i)
+tagdigger_fun.set_directory_interactive()
 
 # read in key file
 bckeys = None

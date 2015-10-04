@@ -12,6 +12,9 @@ Copyright Lindsay V. Clark
 # Adjust function for finding adapter sequence so that
 # it doesn't look for barcoded adapter when looking at tags.
 
+# set working directory for finding files
+tagdigger_fun.set_directory_interactive()
+
 print('''
 	Options are:
 1. Look up markers by sequence in existing database
@@ -61,9 +64,17 @@ if whichprog == '4':
         numDig = int(input('Number of digits for numbering markers (6 in the above example): ').strip())
 
     # generate marker names
-    markerNames = ["{}{:0>}".format(mrkrPrefix, i) for i in range(1, nMrkr+1)]
+    markerNames = ["{}{:0{width}}".format(mrkrPrefix, i, width = numDig) for i in range(1, nMrkr+1)]
     
-# optionally make fasta file for alignment 
+    # optionally make fasta file for alignment
+    exptFA = ""
+    while exptFA not in {'Y', 'N'}:
+        exptFA = input("Make FASTA file of tags to use with alignment software? (y/n): ").strip().upper()
+    if exptFA == 'Y':
+        FAfile = ''
+        while FAfile == '':
+            FAfile == input("Name for FASTA file: ").strip()
+        exportFasta2(FAfile, markerNames, markers[1])
 # optionally add tabular data.
 
 input("Press enter to quit.")
