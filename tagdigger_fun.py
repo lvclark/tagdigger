@@ -1133,3 +1133,49 @@ def exportFasta2(filename, markernames, mergedstrings):
         print(err.args[0])
         os.remove(filename)
     return None
+
+def readTabularData(filename, markerDict = None):
+    '''Read in a table of extra columns to include in tag database.
+       Optionally, markerDict is a dictionary for converting marker
+       names.  You can turn two lists into dictionary for markerDict 
+       using dict(zip(list1, list2)).'''
+    try:
+        with open(filename, 'r', newline='') as mycon:
+            mycsv = csv.reader(mycon)
+            rowcount = 0
+            dataDict = dict() # marker names are keys, items are rows
+            for row in mycsv:
+                if rowcount == 0:
+                    if "Marker Name" not in row:
+                        raise Exception("Need a 'Marker Name' column header.")
+                    mi = row.index("Marker Name")
+                    headers = row
+                    headers.pop(mi)
+                else:
+                    thismarker = row.pop(mi)
+                    if markerDict != None:
+                        thismarker = markerDict[thismarker]
+                    dataDict[thismarker] = row
+                rowcount += 1
+        return [headers, dataDict]
+    except IOError:
+        print("Could not read file {}.".format(filename))
+        return None
+    except Exception as err:
+        print(err.args[0])
+        return None
+
+def writeMarkerDatabase(filename, markernames, mergedseq, extracollist):
+    '''Write a CSV giving sequence and other information for markers.  First
+       column is marker names.  Second column is sequence in merged format.
+       Subsequent columns are described by extracollist.  Each item in 
+       extracollist has two items, the first being a list of column headers,
+       and the second being a dictionary with marker names as the key, and the
+       item being a list of data, in order, for the extra columns.'''
+    pass
+
+def consolidateExtraCols(extracollist):
+    '''Consolidate data from columns with the same column header.  Data from
+       earlier items in extracollist is overwritten by data from later columns
+       in extracollist.  See writeMarkerDatabase for structure of extracollist.'''
+    pass

@@ -74,7 +74,36 @@ if whichprog == '4':
         FAfile = ''
         while FAfile == '':
             FAfile == input("Name for FASTA file: ").strip()
-        exportFasta2(FAfile, markerNames, markers[1])
-# optionally add tabular data.
+        tagdigger_fun.exportFasta2(FAfile, markerNames, markers[1])
+
+    # optionally include original marker names
+    inclOrig = ""
+    origColName = ""
+    while inclOrig not in {'Y', 'N'}:
+        inclOrig = input("Include column containing original marker names? (y/n) ").strip().upper()
+    if inclOrig == 'Y':
+        while origColName == "":
+            origCoName = input("Column header for original marker names: ").strip()
+
+    # optionally add tabular data
+    addTab = ""
+    addTable = None
+    while addTab not in {'Y', 'N'}:
+        addTab = input("Add additional columns of data, referenced by original marker names? (y/n) ").strip().upper()
+    if addTab == 'Y':
+        while addTable == None:
+            addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(),
+                                                     markerDict = dict(zip(markers[0], markerNames)))
+
+    # output to CSV file
+    if addTab == 'Y':
+        extracollist = [addTable]
+    else:
+        extracollist = list()
+    outfile = ''
+    while outfile == '':
+        outfile = input("Name of CSV file for marker database output: ").strip()
+    tagdigger_fun.writeMarkerDatabase(outfile,
+                                      markerNames, markers[1], extracollist)
 
 input("Press enter to quit.")
