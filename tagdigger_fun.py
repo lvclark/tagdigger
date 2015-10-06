@@ -1146,14 +1146,14 @@ def readTabularData(filename, markerDict = None):
             dataDict = dict() # marker names are keys, items are rows
             for row in mycsv:
                 if rowcount == 0:
-                    if "Marker Name" not in row:
-                        raise Exception("Need a 'Marker Name' column header.")
-                    mi = row.index("Marker Name")
+                    if "Marker name" not in row:
+                        raise Exception("Need a 'Marker name' column header.")
+                    mi = row.index("Marker name")
                     headers = row
                     headers.pop(mi)
                 else:
                     thismarker = row.pop(mi)
-                    if markerDict != None:
+                    if markerDict != None and thismarker in markerDict.keys():
                         thismarker = markerDict[thismarker]
                     dataDict[thismarker] = row
                 rowcount += 1
@@ -1172,7 +1172,32 @@ def writeMarkerDatabase(filename, markernames, mergedseq, extracollist):
        extracollist has two items, the first being a list of column headers,
        and the second being a dictionary with marker names as the key, and the
        item being a list of data, in order, for the extra columns.'''
-    pass
+    assert isinstance(extracollist, list), "extracollist must be a list (empty if not needed)."
+    assert all([len(l) == 2 for l in extracollist]), "Each item in extracollist needs two components."
+    assert all([isinstance(l[1], dict) for l in extracollist]), "extracollist needs dictionaries."
+    try:
+        with open(filename, 'w', newline = '') as mycon:
+            cw = csv.writer(mycon)
+            headernames = ['Marker name', 'Tag sequence']
+            nExtraCol = [] # number of extra columns, for each dictionary in extracollist
+            nList = len(extracollist)
+            for l in extracollist: # add header names for extra columns
+                headernames.extend(l[0])
+                nExtraCol.append(len(l[0]))
+            cw.writerow(headernames)
+            for i in range(len(markernames)): # loop through markers and write rows
+                m = markernames[i] # this marker
+                thisrow = [m, mergedseq[i]]
+                for j in range(nList):
+                    d = extracollist[j][1] # the dictionary
+                    if m not in d.keys():
+                        thisrow.extend(["" for i in range(nExtraCol[j])])
+                    else:
+                        thisrow.extend(d[m])
+                cw.writerow(thisrow)
+    except IOError:
+        print("Could not write file {}.".format(filename))
+    return None
 
 def consolidateExtraCols(extracollist):
     '''Consolidate data from columns with the same column header.  Data from

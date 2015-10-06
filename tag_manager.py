@@ -50,6 +50,7 @@ if whichprog == '3':
 # Start new database
 if whichprog == '4':
     tags = tagdigger_fun.readTags_interactive()
+    print("Creating merged tag strings for markers...\n")
     markers = tagdigger_fun.mergedTagList(tags)
     nMrkr = len(markers[0]) # number of markers
     minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
@@ -73,7 +74,7 @@ if whichprog == '4':
     if exptFA == 'Y':
         FAfile = ''
         while FAfile == '':
-            FAfile == input("Name for FASTA file: ").strip()
+            FAfile = input("Name for FASTA file: ").strip()
         tagdigger_fun.exportFasta2(FAfile, markerNames, markers[1])
 
     # optionally include original marker names
@@ -83,7 +84,7 @@ if whichprog == '4':
         inclOrig = input("Include column containing original marker names? (y/n) ").strip().upper()
     if inclOrig == 'Y':
         while origColName == "":
-            origCoName = input("Column header for original marker names: ").strip()
+            origColName = input("Column header for original marker names: ").strip()
 
     # optionally add tabular data
     addTab = ""
@@ -96,10 +97,11 @@ if whichprog == '4':
                                                      markerDict = dict(zip(markers[0], markerNames)))
 
     # output to CSV file
+    extracollist = list()
     if addTab == 'Y':
-        extracollist = [addTable]
-    else:
-        extracollist = list()
+        extracollist.append(addTable)
+    if inclOrig == 'Y':
+        extracollist.append([[origColName], dict(zip(markerNames, [[m] for m in markers[0]]))])
     outfile = ''
     while outfile == '':
         outfile = input("Name of CSV file for marker database output: ").strip()
