@@ -90,7 +90,7 @@ TagDigger will also find the SNP for each tag pair and include the nucleotide in
 Tags can also be read in the following CSV format, which saves computer memory and makes it easy for a human eye to see the SNP(s):
 
 ```
-Marker Name,Tag sequence,
+Marker name,Tag sequence,
 TP276,TGCAGAAA[A/C]AAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,
 TP539,TGCAGAAA[A/T]AAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,
 ```
@@ -108,7 +108,7 @@ Mrkr2010,ACGTAAACGATA[AAG/GAC]TACGATAAATTT,
 Two alternative tag sequences for one marker can be arranged in columns of a CSV:
 
 ```
-Marker Name,Tag sequence 0,Tag sequence 1,
+Marker name,Tag sequence 0,Tag sequence 1,
 TP276,TGCAGAAAAAAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,TGCAGAAACAAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,
 TP539,TGCAGAAAAAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,TGCAGAAATAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,
 ```
