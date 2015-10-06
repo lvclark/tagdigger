@@ -1,10 +1,12 @@
 import tagdigger_fun
 import math
+import csv
 
 # Welcome message
 print('''
-TagDigger v. 0.0 Tag Manager
-Copyright Lindsay V. Clark
+        TagDigger v. 0.0 Tag Manager
+         Copyright Lindsay V. Clark
+ Released under GNU General Public License v3
 ''')
 
 # Need to confirm that marker names contain no spaces, for
@@ -29,13 +31,62 @@ while whichprog not in set('1234'):
 
 # Look up markers in existing database
 if whichprog == '1':
-    tags = tagdigger_fun.readTags_interactive()
-# Export table with marker names from input in first column,
-# user-selected columns from database in remaining columns.
+    print("\nTags to look up in marker database:")
+    tags = tagdigger_fun.readTags_interactive() # new markers to look up
+
+    SNPdb = None  # database to query
+    while SNPdb == None:
+        SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
+
+    print("Comparing tags...")
+    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags)
+
+    # choice of which extra columns to include in output; generate numerical index
+    inclExtr = ''
+    while inclExtr not in {'A', 'S', 'N'}:
+        inclExtr = input('''Include additional columns from the database in the table?
+a = include all, s = select which to include, n = include none: ''').strip().upper()
+    if inclExtr == 'A':
+        extracol = list(range(len(SNPdb[1][0])))
+    if inclExtr == 'N':
+        extracol = []
+    if inclExtr == 'S':
+        extracol = []
+        for i in range(len(SNPdb[1][0])):
+            inclThis = ''
+            while inclThis not in {'Y', 'N'}:
+                inclThis = input("Include {}? (y/n) ".format(SNPdb[1][0][i])).strip().upper()
+            if inclThis == 'Y':
+                extracol.append(i)
+
+    nHeader = len(SNPdb[1][0]) # number of extra cols, including those not to write
+
+    # file to write
+    outfile = ''
+    while outfile == '':
+        outfile = input("File name for CSV output: ").strip()
+    with open(outfile, 'w', newline = '') as outcon:
+        cw = csv.writer(outcon)
+        # write header row
+        cw.writerow(['Query', 'Marker name'] + \
+                    [SNPdb[1][0][i] for i in range(nHeader) if i in extracol])
+        # write marker rows
+        for q in sorted(compareDict.keys()): # loop through query marker names
+            dbmarker = compareDict[q]
+            if dbmarker == None:
+                cw.writerow([q, ''] + ['' for i in range(len(extracol))])
+            else:
+                cw.writerow([q, dbmarker] + \
+                            [SNPdb[1][1][dbmarker][i] for i in range(nHeader) if i in extracol])
+
 
 # Add markers to existing database
 if whichprog == '2':
     tags = tagdigger_fun.readTags_interactive()
+
+    SNPdb = None  # database
+    while SNPdb == None:
+        SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
 # option to also add any tabular data
 # option to make fasta file for unaligned  markers
 # what to do with conflicting tabular data
@@ -43,6 +94,9 @@ if whichprog == '2':
 
 # Add alignment data to database
 if whichprog == '3':
+    SNPdb = None  # database
+    while SNPdb == None:
+        SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
 # optionally make fasta file for alignment
 # read Bowtie2 output
     pass

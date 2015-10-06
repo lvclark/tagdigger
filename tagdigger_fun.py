@@ -1134,7 +1134,7 @@ def exportFasta2(filename, markernames, mergedstrings):
         os.remove(filename)
     return None
 
-def readTabularData(filename, markerDict = None):
+def readTabularData(filename, markerDict = None, ignoreSeq = False):
     '''Read in a table of extra columns to include in tag database.
        Optionally, markerDict is a dictionary for converting marker
        names.  You can turn two lists into dictionary for markerDict 
@@ -1151,10 +1151,15 @@ def readTabularData(filename, markerDict = None):
                     mi = row.index("Marker name")
                     headers = row
                     headers.pop(mi)
+                    if ignoreSeq: # if we want to ignore any column header containing sequence
+                        si = row.index("Tag sequence")
+                        headers.pop(si)
                 else:
                     thismarker = row.pop(mi)
                     if markerDict != None and thismarker in markerDict.keys():
                         thismarker = markerDict[thismarker]
+                    if ignoreSeq:
+                        row.pop(si)
                     dataDict[thismarker] = row
                 rowcount += 1
         return [headers, dataDict]
@@ -1198,6 +1203,57 @@ def writeMarkerDatabase(filename, markernames, mergedseq, extracollist):
     except IOError:
         print("Could not write file {}.".format(filename))
     return None
+
+def readMarkerDatabase(filename):
+    '''Read in a CSV file containing a SNP marker database as produced by
+       writeMarkerDatabase.  Read in marker names, tag sequence, and any
+       extra columns.'''
+    print("Reading data...")
+    try:
+        tags = readTags_Merged(filename) # read tag sequence
+        if tags == None:
+            raise IOError # should happen if file is not readable
+        addData = readTabularData(filename, ignoreSeq = True) # read other columns
+        if addData == None:
+            raise IOError
+        return [tags, addData]
+    except IOError:
+#        print("Could not read file {}.".format(filename))
+        return None
+    except Exception as err:
+        print(err.args[0])
+        return None
+
+def compareTagSets(oldtags, newtags):
+    '''Compare to sets of tags, in the format output by the readTags function.
+       Return a dictionary where the keys include all marker names from newtags,
+       and the items are the marker names from oldtags (if found).'''
+    oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
+    newmarkers = extractMarkers(newtags[0])
+    NnewMarkers = len(newmarkers[0]) # number of new markers
+    Nnewtags = len(newtags[0]) # number of new tags (normally twice the number of markers)
+    resultDict = dict() # output dictionary
+
+    for m in range(NnewMarkers): # loop through markers
+        thismarker = newmarkers[0][m] # marker name
+        # tag sequences for this marker
+        theseseq = [newtags[1][i] for i in range(Nnewtags) if i in newmarkers[1][m][1]]
+        try: # determine whether or not it is in the old set of markers
+            theseoldindices = []
+            for s in theseseq:
+                theseoldindices.append(oldtags[1].index(s))
+        except ValueError: # if not all tags for this marker are a match
+            resultDict[thismarker] = None
+        else: # if all tags for this marker do have a match
+            oldmarker = oldtags[0][theseoldindices[0]] # marker name for the first tag match
+            oldmarker = oldmarker[:oldmarker.find('_')]
+            oi = oldmarkers[0].index(oldmarker) # index of this marker in the old list
+            # if ALL tags match ### (consider changing for multiple alleles)
+            if set(oldmarkers[1][oi][1]) == set(theseoldindices): 
+                resultDict[thismarker] = oldmarker
+            else:
+                resultDict[thismarker] = None
+    return resultDict
 
 def consolidateExtraCols(extracollist):
     '''Consolidate data from columns with the same column header.  Data from
