@@ -1255,8 +1255,47 @@ def compareTagSets(oldtags, newtags):
                 resultDict[thismarker] = None
     return resultDict
 
+def allColumns(extracollist):
+    '''Combine all column names into one list.'''
+    output = []
+    for ecol in extracollist:
+        output.extend(ecol[0])
+    return output
+
 def consolidateExtraCols(extracollist):
     '''Consolidate data from columns with the same column header.  Data from
        earlier items in extracollist is overwritten by data from later columns
        in extracollist.  See writeMarkerDatabase for structure of extracollist.'''
-    pass
+    ac = allColumns(extracollist) # all column header names
+    while len(set(ac)) < len(ac): # test if some columns still need to be consolidated
+        nList = len(extracollist) # number of tables to combine
+        for j in range(0, nList - 1): # iterate through all pairs
+            for k in range(j + 1, nList):
+                # test if there are any overlapping columns between this pair
+                if len(set(extracollist[j][0]) & set(extracollist[k][0])) > 0: 
+                    # set up new tables
+                    newJ = [[e for e in extracollist[j][0] if e not in extracollist[k][0]], dict()]
+                    newK = [[e for e in extracollist[k][0] if e not in extracollist[j][0]], dict()]
+                    combined = [[e for e in extracollist[j][0] if e in extracollist[k][0]], dict()]
+                    # indexes of columns from table J
+                    newJindex = [extracollist[j][0].index(i) for i in newJ[0]] 
+                    combJindex = [extracollist[j][0].index(i) for i in combined[0]]
+                    # update tables marker by marker
+                    for jMrkr in extracollist[j][1].keys():
+                        newJ[1][jMrkr] = [extracollist[j][1][jMrkr][i] for i in newJindex]
+                        combined[1][jMrkr] = [extracollist[j][1][jMrkr][i] for i in combJindex]
+                    # indexes of columns from table K
+                    newKindex = [extracollist[k][0].index(i) for i in newK[0]] 
+                    combKindex = [extracollist[k][0].index(i) for i in combined[0]]
+                    for kMrkr in extracollist[k][1].keys():
+                        newK[1][kMrkr] = [extracollist[k][1][kMrkr][i] for i in newKindex]
+                        combined[1][kMrkr] = [extracollist[k][1][kMrkr][i] for i in combKindex]
+                    # update list of tables
+                    extracollist[j] = newJ
+                    extracollist[k] = newK
+                    extracollist.append(combined)
+        # cleanup
+        extracollist = [ecol for ecol in extracollist if len(ecol[0]) > 0]
+        ac = allColumns(extracollist)
+    
+    return extracollist
