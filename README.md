@@ -2,7 +2,7 @@
 
 TagDigger is a program for processing FASTQ files from genotyping-by-sequencing (GBS) or restriction site-associated DNA sequencing (RAD-seq) experiments.  Its purpose is to rapidly find and count tags of known sequence that are specified by the user.  The assumption is that tags of interest have already been identified by other SNP-mining software, and now the user wants to find those same tags in other sequence data.  Although TagDigger is not graphical software, it is designed to be accessible to people without programming experience.  TagDigger also uses very little RAM and can process a 200 million read FASTQ file in a couple hours on a laptop computer.
 
-TagDigger is a work in progress, but the version available here on GitHub should function.  If it does not, please file an Issue or otherwise notify me.
+If the software does not seem to be functioning properly, please file an Issue or otherwise notify me.
 
 # Obtaining and running the software
 
@@ -20,7 +20,7 @@ Of course, if you are familiar with Git you can use Git to obtain the software.
 
 ## Running the software
 
-On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py".  
+On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py".
 
 Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py`.
 
@@ -83,7 +83,7 @@ TGCAGAAATAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT
 
 The number at the end of each comment line indicates the length of the tag, and is used by TagDigger to trim off poly-A padding that is added by UNEAK to tags containing a restriction cut site.
 
-TagDigger will also find the SNP for each tag pair and include the nucleotide in the tag name.  Tags are assigned to be '0' or '1' based on alphabetical order of the SNP alleles, to be consistent with the [hapMap2numeric and hapMap2genlight](http:www.github.com/lvclark/R_genetics_conv) functions. 
+TagDigger will also find the SNP for each tag pair and include the nucleotide in the tag name.  Tags are assigned to be '0' or '1' based on alphabetical order of the SNP alleles, to be consistent with the [hapMap2numeric and hapMap2genlight](http:www.github.com/lvclark/R_genetics_conv) functions.
 
 ### Merged tags
 
@@ -95,7 +95,7 @@ TP276,TGCAGAAA[A/C]AAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,
 TP539,TGCAGAAA[A/T]AAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,
 ```
 
-The nucleotides before and after the forward slash will be the 0 and 1 alleles, respectively.  
+The nucleotides before and after the forward slash will be the 0 and 1 alleles, respectively.
 
 Polymorphic regions can be more than one nucleotide long, but there can only be one pair of square brackets and one forward slash in the sequence.  For example:
 
@@ -147,3 +147,45 @@ Although the main TagDigger program works with libraries from any enzyme combina
 The output FASTQ files are uncompressed, with barcodes, adapter sequence, and potentially chimeric sequence clipped out.  The comment line for each read has the barcode appended to it.
 
 Optionally, the barcode splitter can also generate a CSV file listing MD5 checksums for each output FASTQ file.
+
+# Tag Manager
+
+A third program included with TagDigger, "tag_manager.py", can be used for creating universal names for markers across multiple projects.  It can read in tag sequences in any of the four formats listed above.  Tag sequences are output in the "merged" format (e.g. `AACG[C/T]CCA`) in a CSV, with new marker names consisting of a user-specified prefix followed by a number.  The original marker names can optionally be included in the output, along with any other columns of data that the user provides in a separate CSV file.  For example, input from the the following files:
+
+```
+>TP276_query_64
+TGCAGAAAAAAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT
+>TP276_hit_64
+TGCAGAAACAAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT
+>TP539_query_64
+TGCAGAAAAAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT
+>TP539_hit_64
+TGCAGAAATAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT
+```
+
+and
+
+```
+Marker name,Allele frequency,
+TP276,0.12,
+TP539,0.05,
+```
+
+could be used to produce the output:
+
+```
+Marker name,Tag sequence,Allele frequency,Name in study 1,
+MyLab00001,TGCAGAAA[A/C]AAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,0.12,TP276,
+MyLab00002,TGCAGAAA[A/T]AAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,0.05,TP539,
+```
+
+Tag Manager can also export all markers to a FASTA file, using IUPAC codes for ambiguous nucleotides.  This FASTA file can be aligned to a reference genome using software such as Bowtie2, and the resulting SAM file can be imported by Tag Manager to add new columns to the database for chromosome, position, and alignment quality score.
+
+Of course, after generating the initial marker database, additional tag files can be imported.  Markers that match the sequence of existing markers will be identified as those markers (in an optional column to list the original marker names), and markers with new sequence will be added to the bottom of the list.  For example:
+
+```
+Marker name,Tag sequence,Allele frequency,Name in study 1,Name in study 2,
+MyLab00001,TGCAGAAA[A/C]AAAAATCACAGCACAGGCACTAGAAGCACTGGTAGTAACTCGAGACAGGATGTAT,0.12,TP276,,
+MyLab00002,TGCAGAAA[A/T]AAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,0.05,TP539,TP1001,
+MyLab00003,TGCAGAGAATATAATCATCACCTGGGCGCTCGCTCAACTC[A/G]ACGAAAGGCGCAGACTTTCCGAC,,,TP2002,
+```

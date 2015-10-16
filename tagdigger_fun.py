@@ -179,7 +179,7 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
                     maxreads=500000000, tassel_tagcount = False):
     '''Make indexing trees for barcodes, cut sites, and tags, then go
     through a FASTQ file and count up instances of barcode*tag combos.'''
-    
+
     # asserts
     assert all([set(barcode.upper()) <= set('ACGT') for
                 barcode in barcodes]), "Non-ACGT barcode."
@@ -188,7 +188,7 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
     tags = [tag.upper() for tag in tags]
     assert all([set(tag) <= set('ACGT') for tag in tags]), \
            "Non-ACGT tag."
-    
+
     # Get cut site length
     cutlen = len(cutsite)
     # Get lengths of all barcodes + cut site
@@ -203,7 +203,7 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
         barcut += combine_barcode_and_cutsite(barcodes, cut)
     # Make indexing tree for barcodes + cut sites.
     barcuttree = build_sequence_tree(barcut, barnum)
-    
+
     # If we see every tag starting with a cut site:
     if set([x[:cutlen] for x in tags]).issubset(set(cutsites)):
         # If there is only one possible cut site, remove it from tags since
@@ -217,11 +217,11 @@ def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
             barcutlen = [x - cutlen for x in barcutlen]
     # Make indexing tree for tags.
     tagtree = build_sequence_tree(tags, len(tags))
-    
+
     # Set up matrix to contain tag counts.  First index is barcode and second
     # index is tag.
     mycounts = [[0 for x in range(len(tags))] for x in range(barnum)]
-    
+
     # Open connection to FASTQ file.
     if fqfile[-2:].lower() == 'gz':
         fqcon = gzip.open(fqfile, 'rt')
@@ -326,7 +326,7 @@ def readBarcodeKeyfile(filename, forSplitter=False):
                     if b == "":
                         raise Exception("Blank cell found where barcode should be in row {}.".format(rowcount + 1))
                     if s == "":
-                        raise Exception("Blank cell found where sample name should be in row {}.".format(rowcount + 1)) 
+                        raise Exception("Blank cell found where sample name should be in row {}.".format(rowcount + 1))
                     if not set(b) <= {'A', 'C', 'G', 'T'}:
                         raise Exception("{0} in row {1} is not a valid barcode.".format(b, rowcount + 1))
                     # check whether this file is already in dict, add if necessary
@@ -380,7 +380,7 @@ def readTags_UNEAK_FASTA(filename, toKeep = None):
                 if linecount % 4 == 0: # lines with first tag name
                     if line[:3] != ">TP":
                         raise Exception("Line {0} of {1} does not start with '>TP'.".format(linecount+1, filename))
-                    tagname1 = line[1:line.rfind("_")] 
+                    tagname1 = line[1:line.rfind("_")]
                     # get length of real tag (some are padded with A's at the end)
                     taglength1 = int(line[line.rfind("_")+1:].strip())
                 if linecount % 4 == 1: # lines with first tag sequence
@@ -487,7 +487,7 @@ def readTags_Rows(filename, toKeep = None):
         print(err.args[0])
         result = None
     return result
-                
+
 def readTags_Columns(filename, toKeep = None):
     '''Read a CSV of sequence tags, where each row has a marker name and
        two tag sequences representing two alleles.'''
@@ -535,10 +535,14 @@ def readTags_Columns(filename, toKeep = None):
         result = None
     return result
 
-def readTags_Merged(filename, toKeep = None):
+def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
     '''Read a CSV of sequence tags, where each row has a marker name and a
        tag sequence with polymorphic nucleotides in square brackets separated
-       by a forward slash.'''
+       by a forward slash.  Because this is the format for the SNP database
+       produced by the tag manager, and that database might have multiple
+       markers that share alleles (since the tag manager currently treats all
+       markers as biallelic), this function differs from the other readTags
+       functions in how it handles duplicate tags.'''
     rowcount = 0
     namelist = []
     seqlist = []
@@ -558,7 +562,7 @@ def readTags_Merged(filename, toKeep = None):
                     if '_' in mname:
                         raise Exception("Marker {}: marker names cannot contain underscores.".format(row[mi]))
                     if toKeep != None and mname not in toKeep:
-                        rowcount +=1
+                        rowcount += 1
                         continue # skip this marker if it is not in the list of ones we want.
                     # find delimiting characters within sequence
                     p1 = row[ti].find('[')
@@ -569,8 +573,11 @@ def readTags_Merged(filename, toKeep = None):
                     tag1 = tag1.upper().strip()
                     tag2 = row[ti][:p1] + row[ti][p2+1:p3] + row[ti][p3+1:]
                     tag2 = tag2.upper().strip()
-                    if (tag1 in seqlist) or (tag2 in seqlist):
-                        raise Exception("Non-unique sequence found: line {0}.".format(rowcount+1))
+                    if not allowDuplicates and ((tag1 in seqlist) or (tag2 in seqlist)):
+                        print("Non-unique sequence found: line {0}.".format(rowcount+1))
+                        print("Marker {} skipped.".format(mname))
+                        rowcount += 1
+                        continue
                     seqlist.append(tag1)
                     seqlist.append(tag2)
                     if not set(tag1 + tag2) <= set('ACGT'):
@@ -654,16 +661,16 @@ Available tag file formats are:
     return tags
 
 def sanitizeTags(taglist):
-    '''Eliminate tags that will cause problems from the list.  'taglist' is 
+    '''Eliminate tags that will cause problems from the list.  'taglist' is
        in the format of output from any of the readTags functions: a list of
-       two elements, with the first being a list of tag names and the 
+       two elements, with the first being a list of tag names and the
        second being a list of tag sequences.'''
     assert len(taglist) == 2, "'taglist' should have two elements."
     assert len(taglist[0]) == len(taglist[1]), \
       "List of tag names should be the same as list of tag sequences."
     # Don't do a check here that tag sequences are ACGT; this is done in several
     # other places.
-    
+
     print("\nSanitizing tags...")
     # Eliminate tags that are shorter versions of other tags
     sortedtags = sorted(taglist[1])
@@ -682,7 +689,7 @@ def sanitizeTags(taglist):
                 print(taglist[0].pop(i))
                 print(taglist[1].pop(i))
     return taglist
-        
+
 
 def combineReadCounts(countsdict, bckeys):
     '''Combine read counts across multiple libraries, merging samples with
@@ -735,7 +742,7 @@ def writeCounts(filename, counts, samnames, tagnames):
         for s in range(len(samnames)):
             cw.writerow([samnames[s]] + counts[s])
     return
-    
+
 def extractMarkers(tagnames):
     '''Get marker names, allele names, and indexes from tag names.'''
     markernames = []
@@ -776,7 +783,7 @@ def writeDiploidGeno(filename, counts, samnames, tagnames):
                     genotypes[s][m] = '1'
                 if counts0 == 0 and counts1 > 0:
                     genotypes[s][m] = '2'
-                    
+
         with open(filename, mode = 'w', newline = '') as csvfile:
             cw = csv.writer(csvfile)
             # header row with marker names
@@ -880,7 +887,7 @@ def findAdapterSeq(sequence, adaptertree, fullsite0, fullsite1, searchstart):
     else: # if both are present but rare cutter comes first
         return rs1 + len(fullsite1)
 
-        
+
 def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
                     adapter = adapters["PstI-MspI-Hall"],
 #                    maxreads = 100000):
@@ -897,7 +904,7 @@ def barcodeSplitter(inputFile, barcodes, outputFiles, cutsite = 'TGCAG',
     assert set(adapter[1][1]) <= set('[barcode]ACGT')
 
     print("Building indices for rapid searching...")
-    
+
     # barcodes setup
     barlen = [len(bc) for bc in barcodes]
     barcut = combine_barcode_and_cutsite(barcodes, cutsite)
@@ -1007,7 +1014,7 @@ def exportFasta(filename, namelist, seqlist):
                 mtags = [seqlist[i] for i in markerindex[1][mi][1]]
                 if len(mtags) == 1: # if non-variable
                     mycon.write(mtags[0] + '\n')
-                else: 
+                else:
                     # find variable sites
                     ctags = compareTags(mtags)
                     # write the first non-variable portion of the tag
@@ -1020,7 +1027,7 @@ def exportFasta(filename, namelist, seqlist):
                         else:
                             mycon.write(mtags[0][ctags[c][0] + 1:ctags[c+1][0]])
                     mycon.write('\n')
-                        
+
     except IOError:
         print("Could not write file {}.".format(filename))
     except Exception as err:
@@ -1029,9 +1036,9 @@ def exportFasta(filename, namelist, seqlist):
     return None
 
 def readSAM(filename):
-    '''Read in a SAM file of alignment information for markers.  Return a 
+    '''Read in a SAM file of alignment information for markers.  Return a
        dictionary, with marker names as the keys, and tuples of reference
-       sequences, positions, and quality scores as the items.'''
+       sequences, positions, and quality scores as the values.'''
     result = dict()
     try:
         with open(filename, mode='r') as mycon:
@@ -1048,6 +1055,9 @@ def readSAM(filename):
         return result
     except IOError:
         print("Could not read file {}.".format(filename))
+        return None
+    except IndexError:
+        print("File {} in wrong format.".format(filename))
         return None
 
 def mergeTags(tag0, tag1):
@@ -1090,7 +1100,7 @@ def mergedTagList(tags):
             tagIndices = markers[1][i][1]
             if markers[1][i][0][0] == '1': # if 1 is the first allele and 0 the second
                 tagIndices.reverse()
-            mergedStrings[i] = mergeTags(tags[1][tagIndices[0]], 
+            mergedStrings[i] = mergeTags(tags[1][tagIndices[0]],
                                          tags[1][tagIndices[1]])
         return [markers[0], mergedStrings]
     except Exception as err:
@@ -1137,7 +1147,7 @@ def exportFasta2(filename, markernames, mergedstrings):
 def readTabularData(filename, markerDict = None, ignoreSeq = False):
     '''Read in a table of extra columns to include in tag database.
        Optionally, markerDict is a dictionary for converting marker
-       names.  You can turn two lists into dictionary for markerDict 
+       names.  You can turn two lists into dictionary for markerDict
        using dict(zip(list1, list2)).'''
     try:
         with open(filename, 'r', newline='') as mycon:
@@ -1173,7 +1183,7 @@ def readTabularData(filename, markerDict = None, ignoreSeq = False):
 def writeMarkerDatabase(filename, markernames, mergedseq, extracollist):
     '''Write a CSV giving sequence and other information for markers.  First
        column is marker names.  Second column is sequence in merged format.
-       Subsequent columns are described by extracollist.  Each item in 
+       Subsequent columns are described by extracollist.  Each item in
        extracollist has two items, the first being a list of column headers,
        and the second being a dictionary with marker names as the key, and the
        item being a list of data, in order, for the extra columns.'''
@@ -1210,7 +1220,7 @@ def readMarkerDatabase(filename):
        extra columns.'''
     print("Reading data...")
     try:
-        tags = readTags_Merged(filename) # read tag sequence
+        tags = readTags_Merged(filename, allowDuplicates=True) # read tag sequence
         if tags == None:
             raise IOError # should happen if file is not readable
         addData = readTabularData(filename, ignoreSeq = True) # read other columns
@@ -1249,7 +1259,7 @@ def compareTagSets(oldtags, newtags):
             oldmarker = oldmarker[:oldmarker.find('_')]
             oi = oldmarkers[0].index(oldmarker) # index of this marker in the old list
             # if ALL tags match ### (consider changing for multiple alleles)
-            if set(oldmarkers[1][oi][1]) == set(theseoldindices): 
+            if set(oldmarkers[1][oi][1]) == set(theseoldindices):
                 resultDict[thismarker] = oldmarker
             else:
                 resultDict[thismarker] = None
@@ -1272,20 +1282,20 @@ def consolidateExtraCols(extracollist):
         for j in range(0, nList - 1): # iterate through all pairs
             for k in range(j + 1, nList):
                 # test if there are any overlapping columns between this pair
-                if len(set(extracollist[j][0]) & set(extracollist[k][0])) > 0: 
+                if len(set(extracollist[j][0]) & set(extracollist[k][0])) > 0:
                     # set up new tables
                     newJ = [[e for e in extracollist[j][0] if e not in extracollist[k][0]], dict()]
                     newK = [[e for e in extracollist[k][0] if e not in extracollist[j][0]], dict()]
                     combined = [[e for e in extracollist[j][0] if e in extracollist[k][0]], dict()]
                     # indexes of columns from table J
-                    newJindex = [extracollist[j][0].index(i) for i in newJ[0]] 
+                    newJindex = [extracollist[j][0].index(i) for i in newJ[0]]
                     combJindex = [extracollist[j][0].index(i) for i in combined[0]]
                     # update tables marker by marker
                     for jMrkr in extracollist[j][1].keys():
                         newJ[1][jMrkr] = [extracollist[j][1][jMrkr][i] for i in newJindex]
                         combined[1][jMrkr] = [extracollist[j][1][jMrkr][i] for i in combJindex]
                     # indexes of columns from table K
-                    newKindex = [extracollist[k][0].index(i) for i in newK[0]] 
+                    newKindex = [extracollist[k][0].index(i) for i in newK[0]]
                     combKindex = [extracollist[k][0].index(i) for i in combined[0]]
                     for kMrkr in extracollist[k][1].keys():
                         newK[1][kMrkr] = [extracollist[k][1][kMrkr][i] for i in newKindex]
@@ -1297,5 +1307,5 @@ def consolidateExtraCols(extracollist):
         # cleanup
         extracollist = [ecol for ecol in extracollist if len(ecol[0]) > 0]
         ac = allColumns(extracollist)
-    
+
     return extracollist

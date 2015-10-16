@@ -101,12 +101,13 @@ if whichprog == '2':
         while origColName == "":
             origColName = input("Column header for original marker names: ").strip()
 
+    print("\nCounting markers...")
     # get list of existing markers that had a match
     matchedold = sorted([i for i in compareDict.values() if i != None])
     # get list of all old markers
     allold = sorted(SNPdb[1][1].keys())
     # get a list of all new markers (original names; generate new names below)
-    allnew = sorted(compareDict.keys())
+    allnew = tagdigger_fun.extractMarkers(tags[0])[0]
     # total number of markers to be output
     nMrkr = len(allold) - len(matchedold) + len(allnew)
     minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
@@ -123,7 +124,7 @@ if whichprog == '2':
     startingNum = highestNum + 1
 
     # ask user about keeping the previous numbering system
-    print('\nLast marker name in existing database is {}.'.format(lastold))
+    print('Last marker name in existing database is {}.'.format(lastold))
     print('Prefix is {}, number of digits is {}, and new markers will be numbered starting {}.'.format(Prefix, numDig, startingNum))
     prefixChoice = input('\nPress enter to keep the prefix {}, or type different prefix to use with new markers: '.format(Prefix)).strip()
     if prefixChoice != '':
@@ -185,7 +186,7 @@ if whichprog == '2':
         addTab = input("\nAdd additional columns to database, referenced by original marker names? (y/n) ").strip().upper()
     if addTab == 'Y':
         while addTable == None:
-            addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(), 
+            addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(),
                                                      markerDict = compareDict)
         newheaders = addTable[0]
         oldheaders = SNPdb[1][0]
@@ -227,13 +228,13 @@ if whichprog == '3':
     # optionally make fasta file for alignment
     exptFA = ""
     while exptFA not in {'Y', 'N'}:
-        exptFA = input("\nMake FASTA file of new tags, to use with alignment software? (y/n): ").strip().upper()
+        exptFA = input("\nMake FASTA file of all tags, to use with alignment software? (y/n): ").strip().upper()
     if exptFA == 'Y':
         FAfile = ''
         while FAfile == '':
             FAfile = input("Name for FASTA file: ").strip()
         tagdigger_fun.exportFasta(FAfile, SNPdb[0][0], SNPdb[0][1])
-    
+
     # read Bowtie2 output
     bt = None
     while bt == None:
@@ -257,7 +258,7 @@ if whichprog == '3':
     mymerged = tagdigger_fun.mergedTagList(SNPdb[0])
     print('Writing file...')
     tagdigger_fun.writeMarkerDatabase(outfile,
-                                      mymerged[0], mymerged[1], 
+                                      mymerged[0], mymerged[1],
                                       [SNPdb[1], [btColNames,bt]])
 
 # Start new database
@@ -279,7 +280,7 @@ if whichprog == '4':
 
     # generate marker names
     markerNames = ["{}{:0{width}}".format(mrkrPrefix, i, width = numDig) for i in range(1, nMrkr+1)]
-    
+
     # optionally make fasta file for alignment
     exptFA = ""
     while exptFA not in {'Y', 'N'}:
