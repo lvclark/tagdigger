@@ -182,7 +182,7 @@ if whichprog == '2':
     addTab = ""
     addTable = None
     while addTab not in {'Y', 'N'}:
-        addTab = input("Add additional columns of data, referenced by original marker names? (y/n) ").strip().upper()
+        addTab = input("\nAdd additional columns to database, referenced by original marker names? (y/n) ").strip().upper()
     if addTab == 'Y':
         while addTable == None:
             addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(), 
@@ -203,6 +203,10 @@ if whichprog == '2':
     else:
         combinedTables = [SNPdb[1]]
 
+    outfile = ''
+    while outfile == '':
+        outfile = input("\nName of CSV file for marker database output: ").strip()
+
     # add original marker names
     if inclOrig == 'Y':
         combinedTables.append([[origColName], {compareDict[k]: [k] for k in compareDict.keys()}])
@@ -210,9 +214,7 @@ if whichprog == '2':
     # output
     print('\nMaking merged tag sequences...')
     mymerged = tagdigger_fun.mergedTagList([SNPdb[0][0] + tagsNEW[0], SNPdb[0][1] + tagsNEW[1]])
-    outfile = ''
-    while outfile == '':
-        outfile = input("Name of CSV file for marker database output: ").strip()
+    print('Writing file...')
     tagdigger_fun.writeMarkerDatabase(outfile,
                                       mymerged[0], mymerged[1], combinedTables)
 
@@ -222,9 +224,41 @@ if whichprog == '3':
     SNPdb = None  # database
     while SNPdb == None:
         SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
-# optionally make fasta file for alignment
-# read Bowtie2 output
-    pass
+    # optionally make fasta file for alignment
+    exptFA = ""
+    while exptFA not in {'Y', 'N'}:
+        exptFA = input("\nMake FASTA file of new tags, to use with alignment software? (y/n): ").strip().upper()
+    if exptFA == 'Y':
+        FAfile = ''
+        while FAfile == '':
+            FAfile = input("Name for FASTA file: ").strip()
+        tagdigger_fun.exportFasta(FAfile, SNPdb[0][0], SNPdb[0][1])
+    
+    # read Bowtie2 output
+    bt = None
+    while bt == None:
+        bt = tagdigger_fun.readSAM(input("\nName of SAM file containing alignment data: ").strip())
+
+    # make column names
+    btColNames = ['','','']
+    while btColNames[0] == '':
+        btColNames[0] = input('\nName for output column containing chromosome names: ').strip()
+    while btColNames[1] == '':
+        btColNames[1] = input('Name for output column containing alignment positions: ').strip()
+    while btColNames[2] == '':
+        btColNames[2] = input('Name for output column containing alignment qualities: ').strip()
+
+    outfile = ''
+    while outfile == '':
+        outfile = input("\nName of CSV file for marker database output: ").strip()
+
+    # output
+    print('\nRemaking merged tag sequences...')
+    mymerged = tagdigger_fun.mergedTagList(SNPdb[0])
+    print('Writing file...')
+    tagdigger_fun.writeMarkerDatabase(outfile,
+                                      mymerged[0], mymerged[1], 
+                                      [SNPdb[1], [btColNames,bt]])
 
 # Start new database
 if whichprog == '4':
