@@ -82,7 +82,7 @@ a = include all, s = select which to include, n = include none: ''').strip().upp
 
 # Add markers to existing database
 if whichprog == '2':
-    print("\nTags to add to marker database:")
+    print("\nNew tags to add to marker database:")
     tags = tagdigger_fun.readTags_interactive()
 
     SNPdb = None  # database
@@ -102,13 +102,13 @@ if whichprog == '2':
             origColName = input("Column header for original marker names: ").strip()
 
     # get list of existing markers that had a match
-    matchedold = sorted([i for i in compareDict.items() if i != None])
+    matchedold = sorted([i for i in compareDict.values() if i != None])
     # get list of all old markers
     allold = sorted(SNPdb[1][1].keys())
     # get a list of all new markers (original names; generate new names below)
     allnew = sorted(compareDict.keys())
     # total number of markers to be output
-    nMrkr = len(allold) - len(matchedold) + len(compareDict)
+    nMrkr = len(allold) - len(matchedold) + len(allnew)
     minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
     # get old marker prefix, number of digits, and last number
     lastold = allold[-1]
@@ -127,7 +127,7 @@ if whichprog == '2':
     print('Prefix is {}, number of digits is {}, and new markers will be numbered starting {}.'.format(Prefix, numDig, startingNum))
     prefixChoice = input('\nPress enter to keep the prefix {}, or type different prefix to use with new markers: '.format(Prefix)).strip()
     if prefixChoice != '':
-        Prefix = PrefixChoice
+        Prefix = prefixChoice
 
     print('\nTotal number of markers is {}.'.format(nMrkr))
     print('Minimum number of digits is {}.'.format(minDig))
@@ -205,9 +205,10 @@ if whichprog == '2':
 
     # add original marker names
     if inclOrig == 'Y':
-        combinedTables.append([[origColName], {compareDict[k]: k for k in compareDict.keys()}])
+        combinedTables.append([[origColName], {compareDict[k]: [k] for k in compareDict.keys()}])
 
     # output
+    print('\nMaking merged tag sequences...')
     mymerged = tagdigger_fun.mergedTagList([SNPdb[0][0] + tagsNEW[0], SNPdb[0][1] + tagsNEW[1]])
     outfile = ''
     while outfile == '':
@@ -255,6 +256,7 @@ if whichprog == '4':
             FAfile = input("Name for FASTA file: ").strip()
         tagdigger_fun.exportFasta2(FAfile, markerNames, markers[1])
 
+    print('\nOptions for exporting SNP database:')
     # optionally include original marker names
     inclOrig = ""
     origColName = ""
@@ -286,4 +288,4 @@ if whichprog == '4':
     tagdigger_fun.writeMarkerDatabase(outfile,
                                       markerNames, markers[1], extracollist)
 
-input("Press enter to quit.")
+input("\nPress enter to quit.")
