@@ -595,6 +595,38 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
         result = None
     return result
 
+def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None):
+    '''Read tags from the catalog format produced by Stacks.'''
+    try:
+        alltags = dict() # keys are locus numbers, values are sequences
+        with open(tagsfile, mode = 'r') as mycon:
+            tr = csv.reader(mycon, delimiter='\t')
+            for row in tr:
+                if toKeep == None or row[3] in toKeep:
+                    alltags[row[3]] = row[10]
+        alleles = list() # tuples, where first item is locus number and second is haplotype
+        with open(allelesfile, mode = 'r') as mycon:
+            ar = csv.reader(mycon, delimiter='\t')
+            for row in ar:
+                if toKeep == None or row[3] in toKeep:
+                    alleles.append((row[3], row[4]))
+        positions = dict() # keys are locus numbers, values are lists of variant positions
+        with open(snpsfile, mode = 'r') as mycon:
+            sr = csv.reader(mycon, delimiter='\t')
+            for row in sr:
+                if toKeep == None or row[3] in toKeep:
+                    if row[3] in positions.keys():
+                        positions[row[3]].append(int(row[4]))
+                    else:
+                        positions[row[3]] = [int(row[4])]
+    except IOError:
+        print("Files not readable.")
+        return None
+    except Exception as err:
+        print(err.args[0])
+        return None
+    pass
+
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
        to keep from a larger list of tags.'''
