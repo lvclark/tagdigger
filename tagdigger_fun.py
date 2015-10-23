@@ -595,37 +595,91 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
         result = None
     return result
 
-def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None):
+def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=False):
     '''Read tags from the catalog format produced by Stacks.'''
     try:
         alltags = dict() # keys are locus numbers, values are sequences
         with open(tagsfile, mode = 'r') as mycon:
             tr = csv.reader(mycon, delimiter='\t')
             for row in tr:
-                if toKeep == None or row[3] in toKeep:
-                    alltags[row[3]] = row[10]
+                if toKeep == None or row[2] in toKeep:
+                    alltags[row[2]] = row[9]
         alleles = list() # tuples, where first item is locus number and second is haplotype
         with open(allelesfile, mode = 'r') as mycon:
             ar = csv.reader(mycon, delimiter='\t')
             for row in ar:
-                if toKeep == None or row[3] in toKeep:
-                    alleles.append((row[3], row[4]))
+                if toKeep == None or row[2] in toKeep:
+                    alleles.append((row[2], row[3]))
         positions = dict() # keys are locus numbers, values are lists of variant positions
         with open(snpsfile, mode = 'r') as mycon:
             sr = csv.reader(mycon, delimiter='\t')
             for row in sr:
-                if toKeep == None or row[3] in toKeep:
-                    if row[3] in positions.keys():
-                        positions[row[3]].append(int(row[4]))
+                if toKeep == None or row[2] in toKeep:
+                    if row[2] in positions.keys():
+                        positions[row[2]].append(int(row[3]))
                     else:
-                        positions[row[3]] = [int(row[4])]
+                        positions[row[2]] = [int(row[3])]
+        namelist = []
+        seqlist = []
+        # generate tag sequences
+        for a in alleles:
+            thislocus = a[0]
+            consensusseq = alltags[thislocus]
+            if len(a[1]) == 0: # non-variable tags
+                outseq = consensusseq
+            else:
+                thesepos = positions[thislocus]
+                outseq = consensusseq[:thesepos[0]] # first non-variable portion
+                for i in range(len(a[1])):
+                    outseq = outseq + a[1][i]
+                    if i+1 == len(a[1]):
+                        outseq = outseq + consensusseq[thesepos[i]+1:]
+                    else:
+                        outseq = outseq + consensusseq[thesepos[i]+1:thesepos[i+1]]
+            outseq = outseq.upper()
+            if not set(outseq) <= set('ACGT'):
+                print("{}_{} skipped for having non-ACGT nucleotides.".format(a[0], a[1]))
+            else:
+                namelist.append(a[0] + '_' + a[1]) # name by locus number and haplotype
+                seqlist.append(outseq)
+        # cleanup
+        if binaryOnly:
+            markers = extractMarkers(namelist)
+            newnamelist = []
+            newseqlist = []
+            for i in range(len(markers[0])):
+                if len(markers[1][i][0]) != 2:
+                    continue
+                index1 = markers[1][i][1][0]
+                index2 = markers[1][i][1][1]
+                # give 0 or 1 designation based on alphabetical order
+                if markers[1][i][0][0] < markers[1][i][0][1]:
+                    newname1 = namelist[index1] + '_0'
+                    newname2 = namelist[index2] + '_1'
+                else:
+                    newname1 = namelist[index1] + '_1'
+                    newname2 = namelist[index2] + '_0'
+                newnamelist.extend([newname1, newname2])
+                newseqlist.extend([seqlist[index1], seqlist[index2]])
+            namelist = newnamelist
+            seqlist = newseqlist
+        return [namelist, seqlist]
+
     except IOError:
         print("Files not readable.")
+        return None
+    except IndexError:
+        print("Files in wrong format.")
+        return None
+    except ValueError:
+        print("Files in wrong format.")
+        return None
+    except KeyError:
+        print("Locus names not matching properly.")
         return None
     except Exception as err:
         print(err.args[0])
         return None
-    pass
 
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
@@ -672,20 +726,32 @@ Available tag file formats are:
   2: Merged tags
   3: Tags in columns
   4: Tags in rows
+  5: Stacks catalog
 ''')
     tagfunctions = {'1': readTags_UNEAK_FASTA,
                     '2': readTags_Merged,
                     '3': readTags_Columns,
-                    '4': readTags_Rows}
+                    '4': readTags_Rows,
+                    '5': readTags_Stacks   }
 
     # choose format and read tag file
     tags = None
     while tags == None:
         thischoice = '0'
-        while thischoice not in {'1', '2', '3', '4'}:
+        while thischoice not in {'1', '2', '3', '4', '5'}:
             thischoice = input("Enter the number of the format of your tag file: ").strip()
-        tagfile = input("Enter the file name: ").strip()
-        tags = tagfunctions[thischoice](tagfile, toKeep = toKeep)
+        if thischoice == '5':
+            tagsfile = input("Enter the name of the *.catalog.tags.tsv file: ").strip()
+            snpsfile = input("Enter the name of the *.catalog.snps.tsv file: ").strip()
+            allelesfile = input("Enter the name of the *.catalog.alleles.tsv file: ").strip()
+            binchoice = ""
+            while binchoice not in {'Y', 'N'}:
+                binchoice = input("Only retain binary markers? y/n: ").strip().upper()
+            tags = readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = toKeep,
+                                   binaryOnly = binchoice == 'Y')
+        else:
+            tagfile = input("Enter the file name: ").strip()
+            tags = tagfunctions[thischoice](tagfile, toKeep = toKeep)
         print('')
     # summarize results
     print("{} tag sequences read.\n".format(len(tags[1])))
