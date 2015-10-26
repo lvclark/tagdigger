@@ -681,6 +681,60 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
         print(err.args[0])
         return None
 
+def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False):
+    '''Read tag sequences from a SAM file and assign marker names using the
+       same conventions as TASSEL-GBSv2.'''
+    namelist = []
+    seqlist = []
+    tempseq = dict() # keys are marker names, values are lists of tags
+    try:
+        with open(filename, mode='r') as mycon:
+            for line in mycon:
+                if line[0] == '@':
+                    continue
+                mycolumns = line.split()
+                myflags = int(mycolumns[1])
+                # skip if no alignment (4 flag)
+                if myflags - 4 in {0, 1, 2, 8, 16, 32, 64, 128}:
+                    continue
+                # chromosome name
+                chr = mycolumns[2].upper()
+                if chr.startswith("CHROMOSOME"):
+                    chr = chr[10:]
+                if chr.startswith("CHR"):
+                    chr = chr[3:]
+                # put S at the beginning of chr number ## is this always right?
+                if chr[0] in set('0123456789'):
+                    chr = 'S' + chr
+                # position
+                pos = mycolumns[3]
+                # check list to keep
+                if toKeep != None and chr + '_' + pos not in toKeep:
+                    continue
+                # make marker name and add to dictionary
+                marker = chr + '-' + pos # no underscores in marker names for TagDigger
+                if marker in tempseq.keys():
+                    tempseq[marker].append(mycolumns[9])
+                else:
+                    tempseq[marker] = [mycolumns[9]]
+        toKeepFixed = [k.replace('_', '-') for k in toKeep]
+        for m in toKeepFixed:
+            if m not in tempseq.keys():
+                continue
+            thesetags = tempseq[m]
+            if binaryOnly and length(thesetags) != 2:
+                continue
+            diff = compareTags(thesetags)
+            # continue editing here
+        if length(namelist) == 0:
+            raise Exception("No markers output; is list of markers to keep in right format (S01_0000000)?")
+    except IOError:
+        print("Could not read file {}.".format(filename))
+        return None
+    except Exception as err:
+        print(err.args[0])
+        return None
+
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
        to keep from a larger list of tags.'''
