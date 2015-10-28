@@ -215,9 +215,12 @@ if whichprog == '2':
     # output
     print('\nMaking merged tag sequences...')
     mymerged = tagdigger_fun.mergedTagList([SNPdb[0][0] + tagsNEW[0], SNPdb[0][1] + tagsNEW[1]])
-    print('Writing file...')
-    tagdigger_fun.writeMarkerDatabase(outfile,
-                                      mymerged[0], mymerged[1], combinedTables)
+    if mymerged == None:
+        print("Please check your input and then re-run the program.")
+    else:
+        print('Writing file...')
+        tagdigger_fun.writeMarkerDatabase(outfile,
+                                          mymerged[0], mymerged[1], combinedTables)
 
 
 # Add alignment data to database
@@ -263,9 +266,11 @@ if whichprog == '3':
 
 # Start new database
 if whichprog == '4':
-    tags = tagdigger_fun.readTags_interactive()
-    print("Creating merged tag strings for markers...\n")
-    markers = tagdigger_fun.mergedTagList(tags)
+    markers = None
+    while markers == None:
+        tags = tagdigger_fun.readTags_interactive()
+        print("Creating merged tag strings for markers...\n")
+        markers = tagdigger_fun.mergedTagList(tags)
     nMrkr = len(markers[0]) # number of markers
     minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
 

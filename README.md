@@ -130,6 +130,12 @@ Mrker4050,2,AGTAGGGAAAGGCCGGCAAGGCAACTAAA,
 
 ```
 
+### Stacks catalog
+The program `cstacks` from the [Stacks](http://catchenlab.life.illinois.edu/stacks/) software generates three files in the format `batch_X.catalog.tags.tsv`, `batch_X.catalog.snps.tsv`, and `batch_X.catalog.alleles.tsv`.  TagDigger can read all three of these files and extract tag sequences.  Marker names will be numbers identical to the Catalog IDs in Stacks.  There is an option to ignore all non-biallelic markers.
+
+### SAM files from TASSEL-GBSv2
+[TASSEL 5](http://www.maizegenetics.net/#!tassel/c17q9) includes as part of its pipeline a [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) file produced by [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) or [BWA](http://bio-bwa.sourceforge.net/).  TagDigger can read tag sequences from this file and generate SNP names in the same format as the TASSEL GBS version 2 pipeline.  Since TASSEL can output multiple SNPs from the same tag, TagDigger generates a different set of names for the tags (in the format `chromosome-position-strand_allele`) but can output a CSV file matching the TASSEL SNP names to the TagDigger marker names.  If supplying a list of markers to retain, the user should put them in the format of TASSEL SNP names (e.g. `S01_1026`).  There is also an option to ignore all non-biallelic markers.
+
 # Output
 
 If multiple barcodes have the sample name within and/or among libraries, the read counts will be added together for all identically-named samples.

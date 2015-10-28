@@ -681,59 +681,127 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
         print(err.args[0])
         return None
 
-def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False):
-    '''Read tag sequences from a SAM file and assign marker names using the
-       same conventions as TASSEL-GBSv2.'''
+def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=False,
+                       keyfilename = None):
+    '''Read tag sequences from a SAM file and match marker names using the
+       same conventions as TASSEL-GBSv2.
+       toKeep: an optional list of marker names to keep, in TASSEL-GBSv2 format.
+       binaryOnly: boolean indicating whether to only keep markers with two tags.
+       writeMarkerKey: boolean indicating whether to write a key of TASSEL SNP names vs. 
+           tagDigger marker names.
+       keyfilename: name for marker key file.'''
+    assert (not writeMarkerKey) or keyfilename != None, "keyfilename needed."
     namelist = []
     seqlist = []
     tempseq = dict() # keys are marker names, values are lists of tags
+    numdig = 0 # number of digits for indicating alignment position
+    markerkey = [] # each item will be a tuple containing the TASSEL name for the SNP followed by
+                    # the tagdigger name for the marker.
     try:
         with open(filename, mode='r') as mycon:
             for line in mycon:
-                if line[0] == '@':
+                if line[0:3] == '@SQ':
+                    # length of number indicating chromosome size
+                    chrsize = len(line.split()[2][3:])
+                    if chrsize > numdig:
+                        numdig = chrsize
                     continue
+                elif line[0] == '@':
+                    continue
+
                 mycolumns = line.split()
                 myflags = int(mycolumns[1])
                 # skip if no alignment (4 flag)
                 if myflags - 4 in {0, 1, 2, 8, 16, 32, 64, 128}:
                     continue
+
                 # chromosome name
-                chr = mycolumns[2].upper()
-                if chr.startswith("CHROMOSOME"):
-                    chr = chr[10:]
-                if chr.startswith("CHR"):
-                    chr = chr[3:]
-                # put S at the beginning of chr number ## is this always right?
-                if chr[0] in set('0123456789'):
-                    chr = 'S' + chr
+                chrom = mycolumns[2] #.upper()
+                # eliminate underscores in chromosome names
+                chrom = chrom.replace('_', '*')
                 # position
                 pos = mycolumns[3]
-                # check list to keep
-                if toKeep != None and chr + '_' + pos not in toKeep:
-                    continue
-                # make marker name and add to dictionary
-                marker = chr + '-' + pos # no underscores in marker names for TagDigger
-                if marker in tempseq.keys():
-                    tempseq[marker].append(mycolumns[9])
+                # strand
+                if myflags - 16 in {0, 1, 2, 8, 32, 64, 128}:
+                    strand = "bot"
                 else:
-                    tempseq[marker] = [mycolumns[9]]
-        toKeepFixed = [k.replace('_', '-') for k in toKeep]
-        for m in toKeepFixed:
-            if m not in tempseq.keys():
-                continue
+                    strand = "top"
+                # sequence
+                sequence = mycolumns[9]
+                if strand == 'bot':
+                    sequence = reverseComplement(sequence)
+
+                # make marker name and add to dictionary
+                marker ="{}-{:0>{width}}-{}".format(chrom, pos, strand, width=numdig)
+                if marker in tempseq.keys():
+                    tempseq[marker].append(sequence)
+                else:
+                    tempseq[marker] = [sequence]
+
+        allMarkers = sorted(tempseq.keys())
+        for m in allMarkers:
             thesetags = tempseq[m]
-            if binaryOnly and length(thesetags) != 2:
+            ntags = len(thesetags)
+            if binaryOnly and ntags != 2:
                 continue
             diff = compareTags(thesetags)
-            # continue editing here
-        if length(namelist) == 0:
-            raise Exception("No markers output; is list of markers to keep in right format (S01_0000000)?")
+
+            if toKeep != None or writeMarkerKey: # check if marker is in list to be retained
+                markerinfo = m.split('-')
+                chrom = markerinfo[0].upper()
+                if chrom.startswith("CHROMOSOME"):
+                    chrom = chrom[10:]
+                if chrom.startswith("CHR"):
+                    chrom = chrom[3:]
+                # put S at the beginning of chromosome number ## is this always right?
+                if chrom[0] in set('0123456789'):
+                    chrom = 'S' + chrom
+                pos = int(markerinfo[1]) # position of leftmost nucleotide
+                if markerinfo[2] == 'top':
+                    snppos = [pos + d[0] for d in diff]
+                else:
+                    taglength = len(thesetags[0])
+                    snppos = [pos + taglength - 1 - d[0] for d in diff]
+                # generate SNP names in TASSEL format
+                possiblenames = ['{}_{}'.format(chrom, p) for p in snppos]
+                # skip if none of these SNP names were in the list to keep
+                if toKeep != None and all([p not in toKeep for p in possiblenames]):
+                    continue
+                if writeMarkerKey:
+                    # add names to list of markers to write.
+                    for p in possiblenames:
+                        markerkey.append((p, m))
+            allelenames = [''.join([d[1][i] for d in diff]) for i in range(ntags)]
+            thesetagnames = [m + '_' + a for a in allelenames]
+            if binaryOnly and allelenames[0] < allelenames[1]:
+                thesetagnames[0] += '_0'
+                thesetagnames[1] += '_1'
+            if binaryOnly and allelenames[1] < allelenames[0]:
+                thesetagnames[1] += '_0'
+                thesetagnames[0] += '_1'
+            namelist.extend(thesetagnames)
+            seqlist.extend(thesetags)
+        if len(namelist) == 0:
+            raise Exception("No markers output; is list of markers to keep in right format (e.g. S03_350622)?")
+        
     except IOError:
         print("Could not read file {}.".format(filename))
         return None
     except Exception as err:
         print(err.args[0])
         return None
+    else:
+        if writeMarkerKey:
+            try:
+                with open(keyfilename, mode='w', newline='') as outcon:
+                    cw = csv.writer(outcon)
+                    cw.writerow(["TASSEL-GBSv2 marker name", "TagDigger marker name"])
+                    for mk in markerkey:
+                        cw.writerow(mk)
+            except IOError:
+                print("Could not write file {}.".format(keyfilename))
+                return None
+        return [namelist, seqlist]
 
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
@@ -781,18 +849,20 @@ Available tag file formats are:
   3: Tags in columns
   4: Tags in rows
   5: Stacks catalog
+  6: SAM file for TASSEL-GBSv2 pipeline
 ''')
     tagfunctions = {'1': readTags_UNEAK_FASTA,
                     '2': readTags_Merged,
                     '3': readTags_Columns,
                     '4': readTags_Rows,
-                    '5': readTags_Stacks   }
+                    '5': readTags_Stacks,
+                    '6': readTags_TASSELSAM }
 
     # choose format and read tag file
     tags = None
     while tags == None:
         thischoice = '0'
-        while thischoice not in {'1', '2', '3', '4', '5'}:
+        while thischoice not in {'1', '2', '3', '4', '5', '6'}:
             thischoice = input("Enter the number of the format of your tag file: ").strip()
         if thischoice == '5':
             tagsfile = input("Enter the name of the *.catalog.tags.tsv file: ").strip()
@@ -803,6 +873,20 @@ Available tag file formats are:
                 binchoice = input("Only retain binary markers? y/n: ").strip().upper()
             tags = readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = toKeep,
                                    binaryOnly = binchoice == 'Y')
+        elif thischoice == '6':
+            tagfile = input("Enter the file name: ").strip()
+            binchoice = ""
+            while binchoice not in {'Y', 'N'}:
+                binchoice = input("Only retain binary markers? y/n: ").strip().upper()
+            keychoice = ""
+            while keychoice not in {'Y', 'N'}:
+                keychoice = input("Output a key file matching TASSEL-GBSv2 SNP names to TagDigger marker names? y/n: ").strip().upper()
+            kfn = None
+            if keychoice == 'Y':
+                kfn = input("File name for CSV file with key: ").strip()
+            print("Reading {}...".format(tagfile))
+            tags = readTags_TASSELSAM(tagfile, toKeep = toKeep, binaryOnly = binchoice == 'Y',
+                                      writeMarkerKey = keychoice == 'Y', keyfilename = kfn)
         else:
             tagfile = input("Enter the file name: ").strip()
             tags = tagfunctions[thischoice](tagfile, toKeep = toKeep)
