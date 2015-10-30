@@ -8,8 +8,8 @@ import os
 import sys
 
 # confirm that Python 3 is being used.
-if sys.version_info.major < 3:
-    print("Python 3 required.  You appear to be using an older version of Python.")
+if sys.version_info.major < 3 or sys.version_info.minor < 1:
+    print("Python 3.1 or higher required.  You appear to be using an older version of Python.")
     raise Exception("Python 3 required.")
 
 # dictionary of restriction enzyme cut sites, including only what will show
