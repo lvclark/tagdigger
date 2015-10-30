@@ -323,8 +323,6 @@ def readBarcodeKeyfile(filename, forSplitter=False):
                     # check row contents
                     if f == "":
                         raise Exception("Blank cell found where file name should be in row {}.".format(rowcount + 1))
-                    if b == "":
-                        raise Exception("Blank cell found where barcode should be in row {}.".format(rowcount + 1))
                     if s == "":
                         raise Exception("Blank cell found where sample name should be in row {}.".format(rowcount + 1))
                     if not set(b) <= {'A', 'C', 'G', 'T'}:
