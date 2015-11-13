@@ -4,6 +4,10 @@ TagDigger is a program for processing FASTQ files from genotyping-by-sequencing 
 
 If the software does not seem to be functioning properly, please file an Issue or otherwise notify me.
 
+## Citing TagDigger
+
+A manuscript has been submitted to *Source Code for Biology and Medicine*.  Please check back later for the full citation.
+
 # Obtaining and running the software
 
 ## Requirements
