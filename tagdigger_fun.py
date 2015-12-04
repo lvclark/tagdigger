@@ -6,6 +6,7 @@ import csv
 import hashlib
 import os
 import sys
+import bisect
 
 # confirm that Python 3 is being used.
 if sys.version_info.major < 3 or sys.version_info.minor < 1:
@@ -1476,27 +1477,37 @@ def compareTagSets(oldtags, newtags):
     newmarkers = extractMarkers(newtags[0])
     NnewMarkers = len(newmarkers[0]) # number of new markers
     Nnewtags = len(newtags[0]) # number of new tags (normally twice the number of markers)
-    resultDict = dict() # output dictionary
+    resultDict = dict.fromkeys(set(newmarkers[0])) # output dictionary
+
+    # build structures for binomial searching
+    nOldtags = len(oldtags[1])
+    oldtagIndSort = [x[1] for x in sorted(zip(oldtags[1], range(nOldtags)))]
+    oldtagSort = sorted(oldtags[1])
+    oldmarkerIndSort = [x[1] for x in sorted(zip(oldmarkers[0], range(len(oldmarkers[0]))))]
+    oldmarkerSort = sorted(oldmarkers[0])
 
     for m in range(NnewMarkers): # loop through markers
         thismarker = newmarkers[0][m] # marker name
         # tag sequences for this marker
-        theseseq = [newtags[1][i] for i in range(Nnewtags) if i in newmarkers[1][m][1]]
+        theseseq = [newtags[1][i] for i in newmarkers[1][m][1]]
         try: # determine whether or not it is in the old set of markers
             theseoldindices = []
             for s in theseseq:
-                theseoldindices.append(oldtags[1].index(s))
+                sortind = bisect.bisect_left(oldtagSort, s)
+                if sortind < nOldtags and oldtags[1][oldtagIndSort[sortind]] == s:
+                    theseoldindices.append(oldtagIndSort[sortind])
+                else:
+                    raise ValueError # no match                    
         except ValueError: # if not all tags for this marker are a match
-            resultDict[thismarker] = None
+            pass
         else: # if all tags for this marker do have a match
             oldmarker = oldtags[0][theseoldindices[0]] # marker name for the first tag match
             oldmarker = oldmarker[:oldmarker.find('_')]
-            oi = oldmarkers[0].index(oldmarker) # index of this marker in the old list
+            # index of this marker in the old list
+            oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
             # if ALL tags match ### (consider changing for multiple alleles)
             if set(oldmarkers[1][oi][1]) == set(theseoldindices):
                 resultDict[thismarker] = oldmarker
-            else:
-                resultDict[thismarker] = None
     return resultDict
 
 def allColumns(extracollist):
