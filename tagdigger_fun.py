@@ -982,16 +982,29 @@ def extractMarkers(tagnames):
     '''Get marker names, allele names, and indexes from tag names.'''
     markernames = []
     alleleindex = []
+    numMarkers = 0
+    markernamesSort = [] # sorted list of marker names (for binary search)
+    markernamesIndexSort = [] # in same order as markernamesSort, giving index in markernames
+    tagindex = 0
     for t in tagnames:
         thismarker = t[:t.find('_')]
-        if thismarker not in markernames:
-            markernames.append(thismarker)
+        # index of this marker in the sorted list
+        thisIndSort = bisect.bisect_left(markernamesSort, thismarker)
+        # add marker to list if it is new
+        if thisIndSort == numMarkers or markernamesSort[thisIndSort] != thismarker:
+            markernames.append(thismarker) # add to non-sorted list
             alleleindex.append([[],[]])
             # item 0 will be allele names, item 1 will be tag indices
-        mi = markernames.index(thismarker)
+            markernamesSort.insert(thisIndSort, thismarker) # add to sorted list
+            markernamesIndexSort.insert(thisIndSort, numMarkers) # add index to sorted list
+            mi = numMarkers # index for unsorted list (at end of list)
+            numMarkers += 1
+        else: # if marker is already in the list, get its index
+            mi = markernamesIndexSort[thisIndSort]
         thisallele = t[t.rfind('_') + 1:]
         alleleindex[mi][0].append(thisallele)
-        alleleindex[mi][1].append(tagnames.index(t))
+        alleleindex[mi][1].append(tagindex)
+        tagindex += 1
     return [markernames, alleleindex]
 
 def writeDiploidGeno(filename, counts, samnames, tagnames):
@@ -1479,7 +1492,7 @@ def compareTagSets(oldtags, newtags):
     Nnewtags = len(newtags[0]) # number of new tags (normally twice the number of markers)
     resultDict = dict.fromkeys(set(newmarkers[0])) # output dictionary
 
-    # build structures for binomial searching
+    # build structures for binary searching
     nOldtags = len(oldtags[1])
     oldtagIndSort = [x[1] for x in sorted(zip(oldtags[1], range(nOldtags)))]
     oldtagSort = sorted(oldtags[1])
