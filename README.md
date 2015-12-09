@@ -4,6 +4,10 @@ TagDigger is a program for processing FASTQ files from genotyping-by-sequencing 
 
 If the software does not seem to be functioning properly, please file an Issue or otherwise notify me.
 
+In addition to the main program tagdigger_interactive.py, two other programs, barcode_splitter.py and tag_manager.py, provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
+
+An overview of the software is also available in a [slideshow](https://sites.google.com/site/lindsayvclarkgenetics/home/files/151029%20lab%20meeting%20TagDigger.pdf?attredirects=0&d=1).
+
 ## Citing TagDigger
 
 A manuscript has been submitted to *Source Code for Biology and Medicine*.  Please check back later for the full citation.
@@ -119,7 +123,7 @@ TP539,TGCAGAAAAAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,TGCAGAAAT
 
 ### Tags in rows
 
-Lastly, each tag can be in its own row in a CSV file.  This is the only format that allows a number of tags per marker other than two.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
+Each tag can be in its own row in a CSV file.  This is the only format that allows a number of tags per marker other than two.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
 
 ```
 Marker name,Allele name,Tag sequence,
