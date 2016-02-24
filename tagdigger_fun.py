@@ -434,7 +434,7 @@ def readTags_UNEAK_FASTA(filename, toKeep = None):
                         tagname2 += "_0"
                     # add names and sequences to lists
                     namelist.extend([tagname1, tagname2])
-                    seqlist.extend([seq1, seq2])
+                    seqlist.extend([seq1[:minlen], seq2[:minlen]])
                 linecount += 1
         result = [namelist, seqlist]
     except IOError:
@@ -686,7 +686,7 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
        same conventions as TASSEL-GBSv2.
        toKeep: an optional list of marker names to keep, in TASSEL-GBSv2 format.
        binaryOnly: boolean indicating whether to only keep markers with two tags.
-       writeMarkerKey: boolean indicating whether to write a key of TASSEL SNP names vs. 
+       writeMarkerKey: boolean indicating whether to write a key of TASSEL SNP names vs.
            tagDigger marker names.
        keyfilename: name for marker key file.'''
     assert (not writeMarkerKey) or keyfilename != None, "keyfilename needed."
@@ -782,7 +782,7 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
             seqlist.extend(thesetags)
         if len(namelist) == 0:
             raise Exception("No markers output; is list of markers to keep in right format (e.g. S03_350622)?")
-        
+
     except IOError:
         print("Could not read file {}.".format(filename))
         return None
@@ -1483,7 +1483,7 @@ def readMarkerDatabase(filename):
         return None
 
 def compareTagSets(oldtags, newtags):
-    '''Compare to sets of tags, in the format output by the readTags function.
+    '''Compare two sets of tags, in the format output by the readTags function.
        Return a dictionary where the keys include all marker names from newtags,
        and the items are the marker names from oldtags (if found).'''
     oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
@@ -1510,7 +1510,7 @@ def compareTagSets(oldtags, newtags):
                 if sortind < nOldtags and oldtags[1][oldtagIndSort[sortind]] == s:
                     theseoldindices.append(oldtagIndSort[sortind])
                 else:
-                    raise ValueError # no match                    
+                    raise ValueError # no match
         except ValueError: # if not all tags for this marker are a match
             pass
         else: # if all tags for this marker do have a match
