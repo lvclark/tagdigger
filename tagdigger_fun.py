@@ -1283,10 +1283,27 @@ def exportFasta(filename, namelist, seqlist):
         os.remove(filename)
     return None
 
-def readSAM(filename):
+def varSitesByMarker(namelist, seqlist):
+    '''Across a set of tags as imported by a readTags function, make a dictionary of
+       the positions of all variable sites for each marker.'''
+    markers = extractMarkers(namelist)
+    nMarkers = len(markers[0]) # number of markers
+    outDict = dict() # dictionary output
+    # loop through markers
+    for mi in range(nMarkers):
+        tagindex = markers[1][mi][1] # index of tags for this marker in the list of sequences
+        # comparison of tags
+        comp = compareTags([seqlist[i] for i in tagindex])
+        # add variable sites to dictionary
+        outDict[markers[0][mi]] = [j[0] for j in comp]
+    return outDict
+
+def readSAM(filename, varDict = None):
     '''Read in a SAM file of alignment information for markers.  Return a
        dictionary, with marker names as the keys, and tuples of reference
-       sequences, positions, and quality scores as the values.'''
+       sequences, positions, and quality scores as the values.
+       varDict is output from varSitesByMarker.  If not None, the last item
+       in the tuple for each marker will be a list of variable sites.'''
     result = dict()
     try:
         with open(filename, mode='r') as mycon:
@@ -1298,8 +1315,21 @@ def readSAM(filename):
                 # skip if no alignment (4 flag)
                 if myflags - 4 in {0, 1, 2, 8, 16, 32, 64, 128}:
                     continue
+                # calculate actual variable positions if desired
+                if varDict != None:
+                    if myflags - 16 in {0, 1, 2, 8, 32, 64, 128}: # top strand
+                        diff = [int(mycolumns[3]) + i for i in varDict[mycolumns[0]]]
+                    else: # bottom strand
+                        taglen = len(mycolumns[9]) # length of sequence
+                        diff = [int(mycolumns[3]) + taglen - 1 - i for i in varDict[mycolumns[0]]]
+                else:
+                    diff = None
+
                 # column 1 is marker name, 3 is chromosome, 4 is position, 5 is quality
-                result[mycolumns[0]] = (mycolumns[2], mycolumns[3], mycolumns[4])
+                if varDict != None:
+                    result[mycolumns[0]] = (mycolumns[2], mycolumns[3], mycolumns[4], diff)
+                else:
+                    result[mycolumns[0]] = (mycolumns[2], mycolumns[3], mycolumns[4])
         return result
     except IOError:
         print("Could not read file {}.".format(filename))

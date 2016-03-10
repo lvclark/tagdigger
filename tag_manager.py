@@ -238,10 +238,21 @@ if whichprog == '3':
             FAfile = input("Name for FASTA file: ").strip()
         tagdigger_fun.exportFasta(FAfile, SNPdb[0][0], SNPdb[0][1])
 
+    # set up dictionary for actual SNP positions, if desired
+    varInput = ""
+    while varInput not in {'Y', 'N'}:
+        varInput = input("\nCalculate actual sites of SNPs, in addition to tag alignment position? (y/n): ").strip().upper()
+    if varInput == 'Y':
+        print("Variable sites will only be output if there is a single variable site per marker.")
+        varDict = tagdigger_fun.varSitesByMarker(SNPdb[0][0], SNPdb[0][1])
+    else:
+        varDict = None
+
     # read Bowtie2 output
     bt = None
     while bt == None:
-        bt = tagdigger_fun.readSAM(input("\nName of SAM file containing alignment data: ").strip())
+        bt = tagdigger_fun.readSAM(input("\nName of SAM file containing alignment data: ").strip(),
+                                   varDict = varDict)
 
     # make column names
     btColNames = ['','','']
@@ -251,6 +262,25 @@ if whichprog == '3':
         btColNames[1] = input('Name for output column containing alignment positions: ').strip()
     while btColNames[2] == '':
         btColNames[2] = input('Name for output column containing alignment qualities: ').strip()
+    if varInput == 'Y':
+        btColNames.append('')
+        while btColNames[3] == '':
+            btColNames[3] = input('Name for output column containing variable site positions: ').strip()
+
+    # clean up variable sites if needed
+    if varInput == 'Y':
+        btMarkers = bt.keys() # marker names
+        btOut = dict()
+        for k in btMarkers:
+            thisrow = bt[k]
+            outrow = list(thisrow[0:3])
+            if len(thisrow[3]) == 1:
+                outrow.append(thisrow[3][0])
+            else:
+                outrow.append("")
+            btOut[k] = outrow
+    else:
+        btOut = bt
 
     outfile = ''
     while outfile == '':
@@ -262,7 +292,7 @@ if whichprog == '3':
     print('Writing file...')
     tagdigger_fun.writeMarkerDatabase(outfile,
                                       mymerged[0], mymerged[1],
-                                      [SNPdb[1], [btColNames,bt]])
+                                      [SNPdb[1], [btColNames,btOut]])
 
 # Start new database
 if whichprog == '4':
