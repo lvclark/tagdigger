@@ -1317,11 +1317,11 @@ def readSAM(filename, varDict = None):
                     continue
                 # calculate actual variable positions if desired
                 if varDict != None:
-                    if myflags - 16 in {0, 1, 2, 8, 32, 64, 128}: # top strand
-                        diff = [int(mycolumns[3]) + i for i in varDict[mycolumns[0]]]
-                    else: # bottom strand
+                    if myflags - 16 in {0, 1, 2, 8, 32, 64, 128}: # bottom strand
                         taglen = len(mycolumns[9]) # length of sequence
                         diff = [int(mycolumns[3]) + taglen - 1 - i for i in varDict[mycolumns[0]]]
+                    else: # top strand
+                        diff = [int(mycolumns[3]) + i for i in varDict[mycolumns[0]]]
                 else:
                     diff = None
 
