@@ -5,7 +5,7 @@ import os
 
 # Welcome message
 print('''
-                  TagDigger v. 0.0
+                  TagDigger v. 0.1
              Copyright Lindsay V. Clark
     Released under GNU General Public License v3
     ''')

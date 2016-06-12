@@ -802,6 +802,68 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 return None
         return [namelist, seqlist]
 
+def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
+    '''Read the .alleles output from pyRAD and import tags.'''
+    namelist = [] # for storing tag names
+    seqlist = []  # for storing tag sequences
+    theseseq = set() # set of sequences for the first marker
+    allowedchars = {'A', 'C', 'G', 'T', '-', 'N'}
+    linenum = 0
+    
+    def seqformarker(seq, m):
+        '''Process a group of sequences for one marker.'''
+        # trim sequences to the length of the shortest one
+        seqlen = min([len(s) for s in seq])
+        seq = [s[:seqlen] for s in seq]
+        while any([s[-1] == '-' for s in seq]):
+            seq = [s[:-1] for s in seq]
+            seqlen -= 1
+        # remove sequences with N's
+        seq = [s for s in seq if 'N' not in s] 
+        seq = sorted(set(seq)) # sort alphabetically
+        nseq = len(seq)
+        
+        nl = [] # to add to namelist
+        sl = [] # to add to seqlist
+
+        if (nseq != 0 and not binaryOnly) or nseq == 2:
+            # remove gaps from sequences
+            sl = [s.replace('-','') for s in seq]
+            # find variable sites for generating tag names
+            alleles = [[s[i] for s in seq] for i in range(seqlen) if len(set([s[i] for s in seq])) > 1]
+            alstr = [''.join([a[i] for a in alleles]) for i in range(nseq)]
+            # make tag names
+            nl = ['{}_{}_{}'.format(m, alstr[i], i) for i in range(nseq)]
+        return [nl, sl]
+    
+    try:  # Read file.
+        with open(filename, mode = 'r') as mycon:
+            for line in mycon:
+                if line[0] == '>':    # line with sequence data
+                    thisseq = line.split()[1]
+                    if not set(thisseq) <= allowedchars:
+                        raise Exception("Character other than ACGTN- detected in sequence.")
+                    theseseq.add(thisseq) # add the sequence from this line to the set for this marker
+                elif line[0] == '/':  # line with marker number
+                    mrkrnum = line.split()[-1][1:-1] # number for this marker
+                    if toKeep == None or mrkrnum in toKeep:
+                        x = seqformarker(theseseq, mrkrnum)
+                        namelist.extend(x[0])  # add tag names to master list
+                        seqlist.extend(x[1])   # add sequences to master list
+                    theseseq = set()       # reset sequences for next marker
+                else:
+                    raise Exception("File not in pyRAD format.")
+                linenum += 1 # increment count of which line we are on
+        result = [namelist, seqlist]
+    except IOError:
+        print("File {} not readable.".format(filename))
+        result = None
+    except Exception as err:
+        print("Line {}:".format(linenum))
+        print(err.args[0])
+        result = None
+    return result
+        
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
        to keep from a larger list of tags.'''
@@ -849,19 +911,21 @@ Available tag file formats are:
   4: Tags in rows
   5: Stacks catalog
   6: SAM file for TASSEL-GBSv2 pipeline
+  7: pyRAD .alleles output
 ''')
     tagfunctions = {'1': readTags_UNEAK_FASTA,
                     '2': readTags_Merged,
                     '3': readTags_Columns,
                     '4': readTags_Rows,
                     '5': readTags_Stacks,
-                    '6': readTags_TASSELSAM }
+                    '6': readTags_TASSELSAM,
+                    '7': readTags_pyRAD }
 
     # choose format and read tag file
     tags = None
     while tags == None:
         thischoice = '0'
-        while thischoice not in {'1', '2', '3', '4', '5', '6'}:
+        while thischoice not in {'1', '2', '3', '4', '5', '6', '7'}:
             thischoice = input("Enter the number of the format of your tag file: ").strip()
         if thischoice == '5':
             tagsfile = input("Enter the name of the *.catalog.tags.tsv file: ").strip()
@@ -886,6 +950,13 @@ Available tag file formats are:
             print("Reading {}...".format(tagfile))
             tags = readTags_TASSELSAM(tagfile, toKeep = toKeep, binaryOnly = binchoice == 'Y',
                                       writeMarkerKey = keychoice == 'Y', keyfilename = kfn)
+        elif thischoice == '7':
+            tagfile = input("Enter the file name: ").strip()
+            binchoice = ""
+            while binchoice not in {'Y', 'N'}:
+                binchoice = input("Only retain binary markers? y/n: ").strip().upper()
+            print("Reading {}...".format(tagfile))
+            tags = readTags_pyRAD(tagfile, toKeep = toKeep, binaryOnly = binchoice == 'Y')
         else:
             tagfile = input("Enter the file name: ").strip()
             tags = tagfunctions[thischoice](tagfile, toKeep = toKeep)
