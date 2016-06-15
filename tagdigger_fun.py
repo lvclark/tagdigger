@@ -337,6 +337,15 @@ def readBarcodeKeyfile(filename, forSplitter=False):
                     result[f][0].append(b)
                     result[f][1].append(s)
                 rowcount += 1
+        # check that no output file names are duplicated
+        if forSplitter:
+            alloutfile = set() # all unique output files
+            totout = 0 # total number of output files
+            for k in result.keys():
+                alloutfile.update(result[k][1])
+                totout += len(result[k][1])
+            if len(alloutfile) < totout:
+                raise Exception("All output files must have unique names for barcode splitter.")
     except IOError:
         print("Could not read file {}.".format(filename))
         result = None
