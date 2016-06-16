@@ -8,6 +8,8 @@ In addition to the main program tagdigger_interactive.py, two other programs, ba
 
 An overview of the software is also available in a [slideshow](https://sites.google.com/site/lindsayvclarkgenetics/home/files/151029%20lab%20meeting%20TagDigger.pdf?attredirects=0&d=1).
 
+TagDigger is released under the GNU General Public License v. 3.
+
 ## Citing TagDigger
 
 A manuscript has been submitted to *Source Code for Biology and Medicine*.  Please check back later for the full citation.
