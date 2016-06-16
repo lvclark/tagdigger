@@ -28,11 +28,11 @@ Of course, if you are familiar with Git you can use Git to obtain the software.
 
 ## Running the software
 
-On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py".
+On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py", "tag_manager.py", or "barcode_splitter.py".
 
-Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py`.
+Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py` (or `python` and the name of the program that you want to use).
 
-The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py" for the program to work.
+The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tag_manager.py", and "barcode_splitter.py" for the respective program to work.
 
 If you find that you have made a mistake in your input and can't go back, simply close the window running TagDigger and re-launch the program.
 
@@ -123,7 +123,7 @@ TP539,TGCAGAAAAAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,TGCAGAAAT
 
 ### Tags in rows
 
-Each tag can be in its own row in a CSV file.  This is the only format that allows a number of tags per marker other than two.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
+Each tag can be in its own row in a CSV file.  This is the only CSV format that allows a number of tags per marker other than two.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
 
 ```
 Marker name,Allele name,Tag sequence,
@@ -145,13 +145,13 @@ The program `cstacks` from the [Stacks](http://catchenlab.life.illinois.edu/stac
 [TASSEL 5](http://www.maizegenetics.net/#!tassel/c17q9) includes as part of its pipeline a [SAM](https://samtools.github.io/hts-specs/SAMv1.pdf) file produced by [Bowtie2](http://bowtie-bio.sourceforge.net/bowtie2/index.shtml) or [BWA](http://bio-bwa.sourceforge.net/).  TagDigger can read tag sequences from this file and generate SNP names in the same format as the TASSEL GBS version 2 pipeline.  Since TASSEL can output multiple SNPs from the same tag, TagDigger generates a different set of names for the tags (in the format `chromosome-position-strand_allele`) but can output a CSV file matching the TASSEL SNP names to the TagDigger marker names.  If supplying a list of markers to retain, the user should put them in the format of TASSEL SNP names (e.g. `S01_1026`).  There is also an option to ignore all non-biallelic markers.
 
 ### .alleles file from pyRAD
-The software [pyRAD](http://dereneaton.com/software/pyrad/) has an option to output a .alleles file containing two consensus sequences per individual for all loci.  This file can be read directly by TagDigger, which finds all unique sequences for each locus.  Like other TagDigger import options, the user can optionally supply a text file with a list of markers to retain, which in this case should be the marker numbers from pyRAD.  There is also an option to only retain biallelic markers.
+The software [pyRAD](http://dereneaton.com/software/pyrad/) has an option to output a `.alleles` file containing two consensus sequences per individual for all loci.  This file can be read directly by TagDigger, which finds all unique sequences for each locus.  Like other TagDigger import options, the user can optionally supply a text file with a list of markers to retain, which in this case should be the marker numbers from pyRAD.  There is also an option to only retain biallelic markers.
 
 Unlike other RAD-seq pipelines, pyRAD can detect insertion and deletion mutations.  TagDigger is able to determine read counts and genotypes for both indels and substitution mutations identified by pyRAD.
 
-# Output
+# Output of tagdigger_interactive.py
 
-If multiple barcodes have the sample name within and/or among libraries, the read counts will be added together for all identically-named samples.
+If multiple barcodes have the same sample name within and/or among libraries, the read counts will be added together for all identically-named samples.
 
 A CSV file of read counts is output, with samples in rows and tags in columns.
 
@@ -169,7 +169,7 @@ Optionally, the barcode splitter can also generate a CSV file listing MD5 checks
 
 # Tag Manager
 
-A third program included with TagDigger, "tag_manager.py", can be used for creating universal names for markers across multiple projects.  It can read in tag sequences in any of the six formats listed above, although at this time only biallelic markers are allowed.  Tag sequences are output in the "merged" format (e.g. `AACG[C/T]CCA`) in a CSV, with new marker names consisting of a user-specified prefix followed by a number.  The original marker names can optionally be included in the output, along with any other columns of data that the user provides in a separate CSV file.  For example, input from the the following files:
+A third program included with TagDigger, "tag_manager.py", can be used for creating universal names for markers across multiple projects.  It can read in tag sequences in any of the seven formats listed above, although at this time only biallelic markers are allowed.  Tag sequences are output in the "merged" format (e.g. `AACG[C/T]CCA`) in a CSV, with new marker names consisting of a user-specified prefix followed by a number.  The original marker names can optionally be included in the output, along with any other columns of data that the user provides in a separate CSV file.  For example, input from the the following files:
 
 ```
 >TP276_query_64
