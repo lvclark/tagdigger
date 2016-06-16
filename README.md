@@ -16,7 +16,9 @@ A manuscript has been submitted to *Source Code for Biology and Medicine*.  Plea
 
 ## Requirements
 
-[Python 3](http://www.python.org) needs to be installed.  TagDigger will not work with Python 2.  Python and TagDigger will work on any operating system.
+[Python 3](http://www.python.org) needs to be installed.  TagDigger will not work with Python 2.  Python and TagDigger will work on any operating system.  
+
+Depending on your operating system, you may need to add Python 3 to your system PATH variable.  [How to edit the PATH in Windows.](http://www.howtogeek.com/118594/how-to-edit-your-system-path-for-easy-command-line-access/)  [How to edit the PATH on a Mac.](http://hathaway.cc/post/69201163472/how-to-edit-your-path-environment-variables-on-mac)  To see if you need to edit the PATH variable, open your operating system's command prompt or shell, and type `python --version`.  You should see something like `Python 3.X.X`.  If instead you see a message about python not being a recognized command, you need to edit the PATH variable.
 
 Although not required, on Windows it is helpful to uncheck "Hide extensions for known file types" in "Folder options".
 
@@ -30,7 +32,7 @@ Of course, if you are familiar with Git you can use Git to obtain the software.
 
 On Windows, TagDigger can be launched simply by double-clicking the file "tagdigger_interactive.py", "tag_manager.py", or "barcode_splitter.py".
 
-Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  Make sure your PATH variable includes the directory where the Python 3 executable is located.  Then in the shell, `cd` (change directory) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py` (or `python` and the name of the program that you want to use).
+Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  In the shell, `cd` [(change directory)](http://www.digitalcitizen.life/command-prompt-how-use-basic-commands) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py` (or `python` and the name of the program that you want to use).
 
 The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tag_manager.py", and "barcode_splitter.py" for the respective program to work.
 
