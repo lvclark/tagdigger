@@ -14,6 +14,8 @@ TagDigger is released under the GNU General Public License v. 3.
 
 A manuscript has been submitted to *Source Code for Biology and Medicine*.  Please check back later for the full citation.
 
+TagDigger version 1.0 is archived at: [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.55760.svg)](http://dx.doi.org/10.5281/zenodo.55760)
+
 # Obtaining and running the software
 
 ## Requirements
