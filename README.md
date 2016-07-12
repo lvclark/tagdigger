@@ -12,7 +12,7 @@ TagDigger is released under the GNU General Public License v. 3.
 
 ## Citing TagDigger
 
-A manuscript has been submitted to *Source Code for Biology and Medicine*.  Please check back later for the full citation.
+Lindsay V. Clark and Erik J. Sacks (2016) TagDigger: user-friendly extraction of read counts from GBS and RAD-seq data.  *Source Code for Biology and Medicine* 11:11.  [DOI: 10.1186/s13029-016-0057-7](http://dx.doi.org/10.1186/s13029-016-0057-7)
 
 TagDigger version 1.0 is archived at: [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.55760.svg)](http://dx.doi.org/10.5281/zenodo.55760)
 
