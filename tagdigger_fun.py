@@ -320,7 +320,7 @@ def readBarcodeKeyfile(filename, forSplitter=False):
                     s = row[si].strip() # sample
                     # skip blank lines
                     if f == "" and b == "" and s == "":
-                        next
+                        continue
                     # check row contents
                     if f == "":
                         raise Exception("Blank cell found where file name should be in row {}.".format(rowcount + 1))
