@@ -1182,9 +1182,23 @@ def build_adapter_tree(adapter, barcodes):
         a1slices = [a1rev[i:] for i in range(len(a1rev) - rl1)]
         a1ind = [0 - len(a) + rl1 for a in a1slices]
         # build tree and add slicing indices
-        result.append([build_sequence_tree(a0slices + a1slices, \
-                                           len(a0slices + a1slices)),
-                       a0ind + a1ind])
+        try:
+            result.append([build_sequence_tree(a0slices + a1slices, \
+                                               len(a0slices + a1slices)),
+                           a0ind + a1ind])
+        except AssertionError:
+            print("Some overlap of adapter sequence for barcode {}.".format(barcodes[bi]))
+            a1slices.sort()
+            removeIndex = []
+            for ai in range(len(a1slices)-1):
+                if a1slices[ai+1].startswith(a1slices[ai]):
+                    removeIndex.append(ai + 1)
+                    print("Won't search for {0} at end of sequence since {1} is already being searched for.".format(a1slices[ai+1][::-1], a1slices[ai][::-1]))
+            a1slices = [a1slices[ai] for ai in range(len(a1slices)) if ai not in removeIndex]
+            a1ind = [0 - len(a) + rl1 for a in a1slices]
+            result.append([build_sequence_tree(a0slices + a1slices, \
+                                               len(a0slices + a1slices)),
+                           a0ind + a1ind])
     return result
 
 def findAdapterSeq(sequence, adaptertree, fullsite0, fullsite1, searchstart):
