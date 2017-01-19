@@ -16,7 +16,7 @@ if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_in
 # dictionary of restriction enzyme cut sites, including only what will show
 # up after the barcode.
 enzymes = {'ApeKI': 'CWGC', 'EcoT22I': 'TGCAT', 'NcoI': 'CATGG',
-           'NsiI': 'TGCAT', 'PstI': 'TGCAG', 'SbfI': 'TGCAGG'}
+           'NsiI': 'TGCAT', 'PstI': 'TGCAG', 'SbfI': 'TGCAGG', 'None': ''}
 
 # dictionary of possible adapter sequences to find.
 # Restriction site listed first, with ^ indicating the end of genomic
@@ -97,7 +97,11 @@ def build_sequence_tree(sequences, numseq):
         myindex += 1
         if myindex == numseq:
             myindex = 0
-    return(tree_recursive(seqlist))
+    if(numseq == 1 and sequences == ['']):
+        result = [['A', ['', 0]], ['C', ['', 0]], ['G', ['', 0]], ['T', ['', 0]]]
+    else:
+        result = tree_recursive(seqlist)
+    return(result)
 
 def sequence_index_lookup(sequence, seqtree):
     '''Lookup a sequence in an index tree, and get the index.  Return -1 if
