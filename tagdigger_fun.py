@@ -865,6 +865,9 @@ def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
                     theseseq.add(thisseq) # add the sequence from this line to the set for this marker
                 elif line[0] == '/':  # line with marker number
                     mrkrnum = line.split()[-1][1:-1] # number for this marker
+                    mrkrnum = mrkrnum.replace("|", "")
+                    mrkrnum = mrkrnum.replace("*", "")
+                    mrkrnum = mrkrnum.replace("-", "")
                     if toKeep == None or mrkrnum in toKeep:
                         x = seqformarker(theseseq, mrkrnum)
                         namelist.extend(x[0])  # add tag names to master list
