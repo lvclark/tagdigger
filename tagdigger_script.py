@@ -71,7 +71,7 @@ if sum(tagformat) != 1:
 if args.tokeep == None:
     toKeep = None
 else:
-    toKeep = tagdigger_fun.readMarkerNames(args.toKeep)
+    toKeep = tagdigger_fun.readMarkerNames(args.tokeep)
     if toKeep == None:
         raise Exception("Problem reading marker names to keep.")
 # only retain binary markers?
@@ -100,6 +100,7 @@ if tagformat[6]:
                                         binaryOnly = binaryOnly)
 if tags == None:
     raise Exception("Problem reading tags.")
+tags = tagdigger_fun.sanitizeTags(tags)
     
 # read barcode file
 bckeys = tagdigger_fun.readBarcodeKeyfile(args.barcodefile)
