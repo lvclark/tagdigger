@@ -4,7 +4,7 @@ TagDigger is a program for processing FASTQ files from genotyping-by-sequencing 
 
 If the software does not seem to be functioning properly, please file an Issue or otherwise notify me.
 
-In addition to the main program tagdigger_interactive.py, two other programs, barcode_splitter.py and tag_manager.py, provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
+In addition to the main program tagdigger_interactive.py, three other programs, tagdigger_script.py, barcode_splitter.py, and tag_manager.py, provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
 
 An overview of the software is also available in a [slideshow](https://sites.google.com/site/lindsayvclarkgenetics/home/files/151029%20lab%20meeting%20TagDigger.pdf?attredirects=0&d=1).
 
@@ -38,7 +38,7 @@ On Windows, TagDigger can be launched simply by double-clicking the file "tagdig
 
 Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  In the shell, `cd` [(change directory)](http://www.digitalcitizen.life/command-prompt-how-use-basic-commands) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py` (or `python` and the name of the program that you want to use).
 
-The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tag_manager.py", and "barcode_splitter.py" for the respective program to work.
+The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tagdigger_script.py", "tag_manager.py", and "barcode_splitter.py" for the respective program to work.
 
 If you find that you have made a mistake in your input and can't go back, simply close the window running TagDigger and re-launch the program.
 
