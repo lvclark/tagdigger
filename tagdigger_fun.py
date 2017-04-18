@@ -1073,6 +1073,8 @@ def writeCounts(filename, counts, samnames, tagnames):
 
 def extractMarkers(tagnames):
     '''Get marker names, allele names, and indexes from tag names.'''
+    if len(tagnames) != len(set(tagnames)):
+        raise Exception("Non-unique tag names found.")
     markernames = []
     alleleindex = []
     numMarkers = 0
