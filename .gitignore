@@ -46,3 +46,5 @@ Temporary Items
 150904test.py
 *.md~
 170123debug.py
+170323debug.py
+*.py#
