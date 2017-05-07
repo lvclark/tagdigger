@@ -17,6 +17,8 @@ import os
 defcs = 'CTGCAG,CCGG' # default cut sites
 defenz = 'PstI-MspI'  # default enzyme pair
 
+maxfragsize = 3000 # trim sequence size for search to save memory (size in bp)
+
 # arguments to the script
 parser = argparse.ArgumentParser(description = "TagDigger script for estimating DNA fragment sizes")
 parser.add_argument('-s', '--samfile', help = 'SAM file of tags to evaluate', required = True)
@@ -141,6 +143,7 @@ seqsort = sorted(sequencenames)
 
 fragsize = ["NA" for i in range(nMarkers)] # for storing the fragment size
 outseq = ["" for i in range(nMarkers)] # for the sequence of this fragment
+GCcontent = ["NA" for i in range(nMarkers)] # for storing GC content of fragment
 
 # begin reading the FASTA of the genome file
 currseqnm = ""
@@ -159,7 +162,8 @@ for i in range(len(genomefiles)):
                 if (bTest >= nMarkers or seqsort[bTest] != newseqnm) and len(gfshort) > 0 and \
                    seqsort[bisect_left(seqsort, gfshort[i])] == gfshort[i]: # matches SAM?
                     newseqnm = gfshort[i]
-                if len(sequence) == 0:
+                seqlen = len(sequence)
+                if seqlen == 0:
                     continue # skip to next line if there is no sequence yet
                     # search for this sequence name in the alignment info
                 b = bisect_left(seqsort, currseqnm) # (designed for large num. scaffolds)
@@ -168,10 +172,11 @@ for i in range(len(genomefiles)):
                     thisindex = listorder[b] # index of marker in the non-sorted lists
                     if strand[thisindex]:
                         # sequence to search if forward strand
-                        subseq = sequence[positions[thisindex]-1:]
+                        subseq = sequence[positions[thisindex]-1:positions[thisindex]+maxfragsize]
                     else:
                         # sequence to search if reverse strand
-                        subseq = reverseComplement(sequence[:positions[thisindex]])
+                        subseq = reverseComplement(sequence[max([0, \
+                                  positions[thisindex]-maxfragsize]):positions[thisindex]])
                     size = "NA"
                     for cs in cutsites:
                         # find cut site in the sequence (can't be in tag except at very end)
@@ -181,6 +186,8 @@ for i in range(len(genomefiles)):
                     fragsize[thisindex] = size
                     if size != "NA":
                         outseq[thisindex] = subseq[:size]
+                        GCcontent[thisindex] = (outseq[thisindex].count('G') + \
+                                                outseq[thisindex].count('C'))/size
                     b += 1
                     cnt += 1
                     if cnt % 1000 == 0: # print progress
@@ -194,8 +201,8 @@ for i in range(len(genomefiles)):
 with open(outputfile, 'w', newline = '') as mycon:
     mywriter = csv.writer(mycon)
     mywriter.writerow(["Marker name", "Sequence name", "Position", "Strand", "Fragment size",
-        "Fragment sequence"])
+        "Fragment GC content", "Fragment sequence"])
     for i in range(nMarkers):
         mywriter.writerow([markernames[i], sequencenames[i], positions[i], 
-                           "forward" if strand[i] else "reverse", fragsize[i], outseq[i]])
+                           "forward" if strand[i] else "reverse", fragsize[i], GCcontent[i], outseq[i]])
 
