@@ -5,6 +5,7 @@ import csv
 import re
 from tagdigger_fun import reverseComplement, adapters
 import argparse
+import os
 
 # This script requires a SAM file listing alignments of unique RAD tags to a reference genome.
 # Also works on SAM file from UNEAK FASTA file, where there are two tags per marker, named
@@ -23,11 +24,15 @@ parser.add_argument('-g', '--genomefile', help = 'FASTA file of reference genome
 parser.add_argument('-o', '--outfile', help = 'CSV output file', default = 'out.csv')
 parser.add_argument('-c', '--cutsites', help = 'Comma-delimited list of restriction sites', default = defcs)
 parser.add_argument('-e', '--enzymes', help = 'Name of enzyme pair', default = defenz )
+parser.add_argument('-w', '--working_dir', help = 'Directory for reading and writing files')
 
 args = parser.parse_args()
 samfile = args.samfile
 genomefile = args.genomefile
 outputfile = args.outfile
+
+if args.working_dir != None:
+    os.chdir(args.working_dir)
 
 # get list of cut sites
 if args.enzymes == defenz: # if enzyme pair was left at default, use provided cutsites
