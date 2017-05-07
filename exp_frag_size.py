@@ -20,7 +20,8 @@ defenz = 'PstI-MspI'  # default enzyme pair
 # arguments to the script
 parser = argparse.ArgumentParser(description = "TagDigger script for estimating DNA fragment sizes")
 parser.add_argument('-s', '--samfile', help = 'SAM file of tags to evaluate', required = True)
-parser.add_argument('-g', '--genomefile', help = 'FASTA file of reference genome', required = True)
+parser.add_argument('-g', '--genomefile', help = 'FASTA file of reference genome')
+parser.add_argument('-d', '--genome_dir', help = 'Directory with multiple FASTA files of reference genome')
 parser.add_argument('-o', '--outfile', help = 'CSV output file', default = 'out.csv')
 parser.add_argument('-c', '--cutsites', help = 'Comma-delimited list of restriction sites', default = defcs)
 parser.add_argument('-e', '--enzymes', help = 'Name of enzyme pair', default = defenz )
@@ -28,11 +29,23 @@ parser.add_argument('-w', '--working_dir', help = 'Directory for reading and wri
 
 args = parser.parse_args()
 samfile = args.samfile
-genomefile = args.genomefile
 outputfile = args.outfile
 
 if args.working_dir != None:
-    os.chdir(args.working_dir)
+    os.chdir(args.working_dir) # change working directories
+
+if (args.genomefile == None and args.genome_dir == None) or \
+   (args.genomefile != None and args.genome_dir != None):
+    raise Exception("Must provide either one file for reference genome (-g) or directory with multiple files (-d).")
+
+if args.genomefile != None:
+    genomefiles = [args.genomefile] # just one genome file
+    gfshort = []
+else:
+    gfshort = os.listdir(args.genome_dir) # genome file names w/o directory
+    # genome file names with directory
+    genomefiles = [os.path.join(args.genome_dir, x) for x in gfshort]
+    gfshort = [x.split('.')[0] for x in gfshort] # remove file extension
 
 # get list of cut sites
 if args.enzymes == defenz: # if enzyme pair was left at default, use provided cutsites
@@ -135,44 +148,47 @@ newseqnm = ""
 sequence = ""
 cnt = 0 # just for counting how many markers found
 
-with open(genomefile, 'r') as mycon:
-    for line in mycon:
-        if line[0] == ">": # sequence names
-            currseqnm = newseqnm # shift the new one to being the current one
-            newseqnm = line[1:].strip() # marker name for the sequence that is to follow
-            if len(sequence) == 0:
-                continue # skip to next line if there is no sequence yet
-            # search for this sequence name in the alignment info
-            b = bisect_left(seqsort, currseqnm) # (designed for large num. scaffolds)
-            # loop through any matching markers (or none)
-            while b < nMarkers and seqsort[b] == currseqnm: 
-                thisindex = listorder[b] # index of marker in the non-sorted lists
-                if strand[thisindex]:
-                    # sequence to search if forward strand
-                    subseq = sequence[positions[thisindex]-1:]
-                else:
-                    # sequence to search if reverse strand
-                    subseq = reverseComplement(sequence[:positions[thisindex]])
-                size = "NA"
-                for cs in cutsites:
-                    # find cut site in the sequence (can't be in tag except at very end)
-                    thissize = subseq.find(cs, tagsizes[thisindex] - len(cs)) + len(cs)  
-                    if thissize > len(cs) - 1 and (size == "NA" or thissize < size):
-                        size = thissize
-                fragsize[thisindex] = size
-                if size != "NA":
-                    outseq[thisindex] = subseq[:size]
-#                print(" ".join([markernames[thisindex], currseqnm, str(size)]))
-                b += 1
-                cnt += 1
-                if cnt % 1000 == 0: # print progress
-                    print(cnt)
-            # reset sequence
-            sequence = ""
-#            if cnt >= 10: # for testing only
-#                break
-        else:
-            sequence = sequence + line.strip().upper()
+for i in range(len(genomefiles)):
+    with open(genomefiles[i], 'r') as mycon:
+        for line in mycon:
+            if line[0] == ">": # sequence names
+                currseqnm = newseqnm # shift the new one to being the current one
+                newseqnm = line[1:].strip() # marker name for the sequence that is to follow
+                # check to see if this is the right sequence name or if it should be changed to the file name
+                bTest = bisect_left(seqsort, newseqnm)
+                if (bTest >= nMarkers or seqsort[bTest] != newseqnm) and len(gfshort) > 0 and \
+                   seqsort[bisect_left(seqsort, gfshort[i])] == gfshort[i]: # matches SAM?
+                    newseqnm = gfshort[i]
+                if len(sequence) == 0:
+                    continue # skip to next line if there is no sequence yet
+                    # search for this sequence name in the alignment info
+                b = bisect_left(seqsort, currseqnm) # (designed for large num. scaffolds)
+                # loop through any matching markers (or none)
+                while b < nMarkers and seqsort[b] == currseqnm: 
+                    thisindex = listorder[b] # index of marker in the non-sorted lists
+                    if strand[thisindex]:
+                        # sequence to search if forward strand
+                        subseq = sequence[positions[thisindex]-1:]
+                    else:
+                        # sequence to search if reverse strand
+                        subseq = reverseComplement(sequence[:positions[thisindex]])
+                    size = "NA"
+                    for cs in cutsites:
+                        # find cut site in the sequence (can't be in tag except at very end)
+                        thissize = subseq.find(cs, tagsizes[thisindex] - len(cs)) + len(cs)  
+                        if thissize > len(cs) - 1 and (size == "NA" or thissize < size):
+                            size = thissize
+                    fragsize[thisindex] = size
+                    if size != "NA":
+                        outseq[thisindex] = subseq[:size]
+                    b += 1
+                    cnt += 1
+                    if cnt % 1000 == 0: # print progress
+                        print(cnt)
+                # reset sequence
+                sequence = ""
+            else:
+                sequence = sequence + line.strip().upper()
             
 # write output file
 with open(outputfile, 'w', newline = '') as mycon:

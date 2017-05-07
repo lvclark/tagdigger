@@ -229,3 +229,9 @@ where alignment.sam is replaced with the name of your SAM file, reference.fasta 
 ```
 python exp_frag_size.py -s alignment.sam -g reference.fasta -o output.csv -w C:\Users\lvclark\Documents\bestgenome -e NsiI-MspI
 ```
+
+Additionally, if your reference genome is split among multiple FASTA files, you can use the -d argument to point to a directory that contains all of the reference genome FASTA files (and no other files).  In this case the -g argument can be omitted.  The path supplied to this argument should either be a full path, or should be with respect to the path given with the -w argument.
+
+```
+python exp_frag_size.py -s alignment.sam -d ..\genomesequence -o output.csv -w C:\Users\lvclark\Documents\alignmentfolder -c CTGCAG,CCGG
+```
