@@ -187,7 +187,8 @@ for i in range(len(genomefiles)):
                     if size != "NA":
                         outseq[thisindex] = subseq[:size]
                         GCcontent[thisindex] = (outseq[thisindex].count('G') + \
-                                                outseq[thisindex].count('C'))/size
+                                                outseq[thisindex].count('C'))/ \
+                                               (size - outseq[thisindex].count('N'))
                     b += 1
                     cnt += 1
                     if cnt % 1000 == 0: # print progress
