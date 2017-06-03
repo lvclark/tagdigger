@@ -111,11 +111,14 @@ TP539,TGCAGAAA[A/T]AAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,
 
 The nucleotides before and after the forward slash will be the 0 and 1 alleles, respectively.
 
-Polymorphic regions can be more than one nucleotide long, but there can only be one pair of square brackets and one forward slash in the sequence.  For example:
+Polymorphic regions can be more than one nucleotide long, and there can be more than one forward slash in the sequence (but only one pair of square brackets, so phasing can be inferred).  For example:
 
 ```
 Mrkr2010,ACGTAAACGATA[AAG/GAC]TACGATAAATTT,
+Mrkr2011,GGATAAC[CAC/TAC/TAT]GGATTA,
 ```
+
+These tags will be named Mrkr2010_AAG_0, Mrkr2010_GAC_1, Mrkr2011_CAC_0, Mrkr2011_TAC_1, and Mrkr2011_TAT_2.
 
 ### Tags in columns
 
@@ -129,7 +132,7 @@ TP539,TGCAGAAAAAAACTTGAGAAAGGCCGTACTTTTAAAGTGTATTATAGAAAAATCTTAGGTGCAT,TGCAGAAAT
 
 ### Tags in rows
 
-Each tag can be in its own row in a CSV file.  This is the only CSV format that allows a number of tags per marker other than two.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
+Each tag can be in its own row in a CSV file.  Any number of alleles per marker is allowed.  Alleles can have any name, but the names '0' and '1' will facilitate the use of other TagDigger tools for biallelic markers.
 
 ```
 Marker name,Allele name,Tag sequence,

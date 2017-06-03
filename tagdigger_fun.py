@@ -578,25 +578,23 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
                         continue # skip this marker if it is not in the list of ones we want.
                     # find delimiting characters within sequence
                     p1 = row[ti].find('[')
-                    p2 = row[ti].find('/')
+                    #p2 = row[ti].find('/')
                     p3 = row[ti].find(']')
-                    # extract the two tag sequences
-                    tag1 = row[ti][:p1] + row[ti][p1+1:p2] + row[ti][p3+1:]
-                    tag1 = tag1.upper().strip()
-                    tag2 = row[ti][:p1] + row[ti][p2+1:p3] + row[ti][p3+1:]
-                    tag2 = tag2.upper().strip()
-                    if not allowDuplicates and ((tag1 in seqlist) or (tag2 in seqlist)):
+                    # recreate the tag sequences
+                    subtags = row[ti][p1+1:p3].split('/') # list of versions of the variable region
+                    subtags = [x.strip().upper() for x in subtags]
+                    tags = [(row[ti][:p1] + x + row[ti][p3+1:]).upper().strip() for x in subtags]
+                    
+                    if not allowDuplicates and any([x in seqlist for x in tags]):
                         print("Non-unique sequence found: line {0}.".format(rowcount+1))
                         print("Marker {} skipped.".format(mname))
                         rowcount += 1
                         continue
-                    seqlist.append(tag1)
-                    seqlist.append(tag2)
-                    if not set(tag1 + tag2) <= set('ACGT'):
+                    seqlist.extend(tags)
+                    if not all([set(x) <= set('ACGT') for x in tags]):
                         raise Exception("Tag sequence not formatted correctly in row {}.".format(rowcount+1))
-                    # generate the two allele names
-                    namelist.append(mname + '_' + row[ti][p1+1:p2] + '_0')
-                    namelist.append(mname + '_' + row[ti][p2+1:p3] + '_1')
+                    # generate the allele names
+                    namelist.extend(["{}_{}_{}".format(mname, subtags[i], i) for i in range(len(tags))])
                 rowcount += 1
         result = [namelist, seqlist]
     except IOError:
