@@ -39,7 +39,7 @@ if whichprog == '1':
         SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
 
     print("Comparing tags...")
-    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags)
+    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = True)
 
     # choice of which extra columns to include in output; generate numerical index
     inclExtr = ''
@@ -90,7 +90,7 @@ if whichprog == '2':
         SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
 
     print("Comparing tags...")
-    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags)
+    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = True)
 
     # optionally include original marker names
     inclOrig = ""

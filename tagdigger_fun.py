@@ -1445,30 +1445,27 @@ def readSAM(filename, varDict = None):
         print("File {} in wrong format.".format(filename))
         return None
 
-def mergeTags(tag0, tag1):
-    '''Given two sequences, produce an output string in "merged" format,
+def mergeTags(tags):
+    '''Given a list of sequences, produce an output string in "merged" format,
        with square brackets surrounding the variable region and a forward
        slash separating the two variants.'''
     # make sure tags are same length
-    if len(tag0) != len(tag1):
-        minlen = min([len(tag0), len(tag1)])
-        tag0 = tag0[:minlen]
-        tag1 = tag1[:minlen]
-    x = compareTags([tag0, tag1]) # has assert to check ACGT
-    assert len(x) > 0, "Both tags in pair are identical."
+    taglen = [len(t) for t in tags]
+    minlen = min(taglen)
+    ntags = len(tags)
+    if not all([tl == minlen for tl in taglen]):
+        tags = [t[:minlen] for t in tags]
+    x = compareTags(tags) # has assert to check ACGT
+    assert len(x) > 0, "All tags in set are identical."
     variantpositions = [y[0] for y in x]
     minvar = min(variantpositions)
     maxvar = max(variantpositions)
     # get invariant portions of tags
-    invarstart = tag0[:minvar]
-    invarend = tag0[maxvar + 1:]
+    invarstart = tags[0][:minvar]
+    invarend = tags[0][maxvar + 1:]
     # get variant portions
-    var0 = ''
-    var1 = ''
-    for i in range(minvar, maxvar+1):
-        var0 = var0 + tag0[i]
-        var1 = var1 + tag1[i]
-    return invarstart + '[' + var0 + '/' + var1 + ']' + invarend
+    var = [t[minvar:(maxvar+1)] for t in tags]
+    return invarstart + '[' + '/'.join(var) + ']' + invarend
 
 def mergedTagList(tags):
     '''Given a list of tag names and tags such as those output by the
@@ -1478,15 +1475,13 @@ def mergedTagList(tags):
     nM = len(markers[0]) # number of markers
     try:
         # check that each marker has two alleles
-        if not all([len(m[1]) == 2 for m in markers[1]]):
-            raise Exception("Each marker needs two tags.")
+        if not all([len(m[1]) > 1 for m in markers[1]]):
+            raise Exception("Each marker needs multiple tags.")
         mergedStrings = ["" for i in range(nM)] # list to contain merged strings
         for i in range(nM):
-            tagIndices = markers[1][i][1]
-            if markers[1][i][0][0] == '1': # if 1 is the first allele and 0 the second
-                tagIndices.reverse()
-            mergedStrings[i] = mergeTags(tags[1][tagIndices[0]],
-                                         tags[1][tagIndices[1]])
+            # get indices of tags for this marker, sorted by allele name
+            tagIndices = [ti for (al, ti) in sorted(zip(markers[1][i][0], markers[1][i][1]))]
+            mergedStrings[i] = mergeTags([tags[1][ti] for ti in tagIndices])
         return [markers[0], mergedStrings]
     except Exception as err:
         print(err.args[0])
@@ -1619,7 +1614,7 @@ def readMarkerDatabase(filename):
         print(err.args[0])
         return None
 
-def compareTagSets(oldtags, newtags):
+def compareTagSets(oldtags, newtags, perfectMatch = False):
     '''Compare two sets of tags, in the format output by the readTags function.
        Return a dictionary where the keys include all marker names from newtags,
        and the items are the marker names from oldtags (if found).'''
@@ -1646,18 +1641,21 @@ def compareTagSets(oldtags, newtags):
                 sortind = bisect.bisect_left(oldtagSort, s)
                 if sortind < nOldtags and oldtags[1][oldtagIndSort[sortind]] == s:
                     theseoldindices.append(oldtagIndSort[sortind])
-                else:
+                elif perfectMatch:
                     raise ValueError # no match
         except ValueError: # if not all tags for this marker are a match
             pass
-        else: # if all tags for this marker do have a match
+        else: 
+            if len(theseoldindices) == 0: # if no tag matches were found, marker not matched
+                continue
+            # if any tags for this marker do have a match
             oldmarker = oldtags[0][theseoldindices[0]] # marker name for the first tag match
             oldmarker = oldmarker[:oldmarker.find('_')]
             # index of this marker in the old list
             oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
-            # if ALL tags match ### (consider changing for multiple alleles)
-            if set(oldmarkers[1][oi][1]) == set(theseoldindices):
-                resultDict[thismarker] = oldmarker
+#            # if ALL tags match ### (consider changing for multiple alleles)
+#            if set(oldmarkers[1][oi][1]) == set(theseoldindices):
+            resultDict[thismarker] = oldmarker
     return resultDict
 
 def allColumns(extracollist):
