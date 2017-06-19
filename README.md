@@ -116,9 +116,10 @@ Polymorphic regions can be more than one nucleotide long, and there can be more 
 ```
 Mrkr2010,ACGTAAACGATA[AAG/GAC]TACGATAAATTT,
 Mrkr2011,GGATAAC[CAC/TAC/TAT]GGATTA,
+Mrkr2012,CTCCAAGACCT[AG/C-]TTTTACGGG,
 ```
 
-These tags will be named Mrkr2010_AAG_0, Mrkr2010_GAC_1, Mrkr2011_CAC_0, Mrkr2011_TAC_1, and Mrkr2011_TAT_2.
+These tags will be named Mrkr2010_AAG_0, Mrkr2010_GAC_1, Mrkr2011_CAC_0, Mrkr2011_TAC_1, Mrkr2011_TAT_2. Mrkr2012_AG_0, and Mrkr2012_C-_1.
 
 ### Tags in columns
 
