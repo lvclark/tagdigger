@@ -583,7 +583,7 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
                     # recreate the tag sequences
                     subtags = row[ti][p1+1:p3].split('/') # list of versions of the variable region
                     subtags = [x.strip().upper() for x in subtags]
-                    tags = [(row[ti][:p1] + x + row[ti][p3+1:]).upper().strip() for x in subtags]
+                    tags = [(row[ti][:p1] + x + row[ti][p3+1:]).upper().strip().replace('-','') for x in subtags]
                     
                     if not allowDuplicates and any([x in seqlist for x in tags]):
                         print("Non-unique sequence found: line {0}.".format(rowcount+1))
