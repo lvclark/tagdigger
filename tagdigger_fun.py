@@ -1614,20 +1614,55 @@ def readMarkerDatabase(filename):
         print(err.args[0])
         return None
 
-def compareTagSets(oldtags, newtags, perfectMatch = False):
+def lookupMarkerByTag(tagNamesSort, tagSeqSort, queryTags, allowDiffLengths = False):
+    '''For a set of tags corresponding to one marker for the query, retrieve a
+       set of markers with matching tags.  tagSeqSort is sorted list of tag sequences,
+       tagNamesSort is a list of tag names in the same order (markername_allelename),
+       and queryTags is a list of tag sequences for one marker.
+       If allowDiffLengths = True, the tags don't need to be the same length to match, 
+       but instead one can start with the other.  The tag in queryTags will be ignored
+       if more than one tag in tagSeqSort starts with it.'''
+    markersOut = set()
+    nTags = len(tagSeqSort)
+    assert nTags == len(tagNamesSort), "tagNamesSort and tagSeqSort not same length"
+    for tag in queryTags:
+        markerfound = False
+        sortind = bisect.bisect_left(tagSeqSort, tag)
+        if sortind < nTags and tag == tagSeqSort[sortind]:
+            thistagname = tagNamesSort[sortind]
+            markerfound = True
+        elif allowDiffLengths and sortind < nTags:
+            if tag.startswith(tagSeqSort[sortind - 1]):
+                thistagname = tagNamesSort[sortind - 1]
+                markerfound = True
+            if tagSeqSort[sortind].startswith(tag) and not tagSeqSort[sortind + 1].startswith(tag):
+                thistagname = tagNamesSort[sortind]
+                markerfound = True
+        if markerfound:
+            thismarkername = thistagname[:thistagname.find('_')]
+            markersOut.add(thismarkername)
+    return markersOut
+    
+def sortTagsBySeq(tags):
+    '''Take tags output by one of the readTags functions, and return tags and tag
+    names in the same format but sorted by sequence (for binary search).'''
+    seqs, names = zip(*sorted(zip(tags[1], tags[0])))
+    return [names, seqs]
+
+def compareTagSets(oldtags, newtags, perfectMatch = False, allowDiffLengths = True):
     '''Compare two sets of tags, in the format output by the readTags function.
        Return a dictionary where the keys include all marker names from newtags,
-       and the items are the marker names from oldtags (if found).'''
-    oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
+       and the items are the marker names from oldtags (if found).
+       perfectMatch = does each tag in the new set need to have a match in the old set and vice versa?
+       allowDiffLengths = can a new tag be a shorter version of an old tag and vice versa?'''
+    oldtags_sort = sortTagsBySeq(oldtags) # old tag sequences sorted for binary searching
+    oldmarkers = extractMarkers(oldtags_sort[0]) # get marker indices in tag lists
     newmarkers = extractMarkers(newtags[0])
     NnewMarkers = len(newmarkers[0]) # number of new markers
     Nnewtags = len(newtags[0]) # number of new tags (normally twice the number of markers)
     resultDict = dict.fromkeys(set(newmarkers[0])) # output dictionary
 
     # build structures for binary searching
-    nOldtags = len(oldtags[1])
-    oldtagIndSort = [x[1] for x in sorted(zip(oldtags[1], range(nOldtags)))]
-    oldtagSort = sorted(oldtags[1])
     oldmarkerIndSort = [x[1] for x in sorted(zip(oldmarkers[0], range(len(oldmarkers[0]))))]
     oldmarkerSort = sorted(oldmarkers[0])
 
@@ -1635,28 +1670,41 @@ def compareTagSets(oldtags, newtags, perfectMatch = False):
         thismarker = newmarkers[0][m] # marker name
         # tag sequences for this marker
         theseseq = [newtags[1][i] for i in newmarkers[1][m][1]]
-        try: # determine whether or not it is in the old set of markers
-            theseoldindices = []
-            for s in theseseq:
-                sortind = bisect.bisect_left(oldtagSort, s)
-                if sortind < nOldtags and oldtags[1][oldtagIndSort[sortind]] == s:
-                    theseoldindices.append(oldtagIndSort[sortind])
-                elif perfectMatch:
-                    raise ValueError # no match
-        except ValueError: # if not all tags for this marker are a match
-            pass
-        else: 
-            if len(theseoldindices) == 0: # if no tag matches were found, marker not matched
-                continue
-            # if any tags for this marker do have a match
-            oldmarker = oldtags[0][theseoldindices[0]] # marker name for the first tag match
-            oldmarker = oldmarker[:oldmarker.find('_')]
-            # index of this marker in the old list
-            oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
-#            # if ALL tags match ### (consider changing for multiple alleles)
-#            if set(oldmarkers[1][oi][1]) == set(theseoldindices):
-            resultDict[thismarker] = oldmarker
+        mrkrmatch = lookupMarkerByTag(oldtags_sort[0], oldtags_sort[1], theseseq, allowDiffLengths = allowDiffLengths)
+        if len(mrkrmatch) > 1:
+            raise Exception("Marker {} matches multiple markers {}; consolidation of markers may be necessary.".format(thismarker, ", ".join(sorted(mrkrmatch))))
+        if len(mrkrmatch) == 1:
+            if perfectMatch:
+                oldmarker = mrkrmatch.pop()
+                oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
+                oldseq = [oldtags_sort[1][i] for i in oldmarkers[1][oi][1]]
+                if set(oldseq) == set(theseseq):
+                    resultDict[thismarker] = oldmarker
+            else:
+                resultDict[thismarker] = mrkrmatch.pop()
     return resultDict
+    
+def consolidateTagSets(oldtags, newtags):
+    '''Allowing for multiple tags per marker, and for tag sets that do not completely overlap
+       between old and new markers, make a consolidated set of tags and marker names.  For use
+       by Tag Manager when there are multiple alleles.'''
+    oldtags_sort = sortTagsBySeq(oldtags) # old tag sequences sorted for binary searching
+    oldmarkers = extractMarkers(oldtags_sort[0]) # get marker indices in tag lists
+    newmarkers = extractMarkers(newtags[0])
+    tagsOut = [[], []] # tags to output (same format as readTags functions)
+    
+   
+    # first, find any to consolidate in old tags
+    oldDupIndex = [i for i in range(1, nOldTags) if oldtagSort[i] == oldtagSort[i-1]]
+    for i in oldDupIndex:
+        tagname2 = oldtags[0][oldtagIndSort[i]]
+        marker2 = tagname2[:tagname2.find('_')]
+        tagname1 = oldtags[0][oldtagIndSort[i-1]]
+        marker1 = tagname1[:tagname1.find('_')]
+        if marker1 not in oldmarkers[0]:
+            pass
+        tags1 = [oldtags[1][ti] for ti in oldmarkers[1][oldmarkers[0].index(marker1)][1]]
+    pass
 
 def allColumns(extracollist):
     '''Combine all column names into one list.'''
