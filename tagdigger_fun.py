@@ -1621,7 +1621,8 @@ def lookupMarkerByTag(tagNamesSort, tagSeqSort, queryTags, allowDiffLengths = Fa
        and queryTags is a list of tag sequences for one marker.
        If allowDiffLengths = True, the tags don't need to be the same length to match, 
        but instead one can start with the other.  The tag in queryTags will be ignored
-       if more than one tag in tagSeqSort starts with it.'''
+       if more than one tag in tagSeqSort starts with it.  The function will however
+       accomodate multiple identical tags in tagSeqSort.'''
     markersOut = set()
     nTags = len(tagSeqSort)
     assert nTags == len(tagNamesSort), "tagNamesSort and tagSeqSort not same length"
@@ -1631,16 +1632,34 @@ def lookupMarkerByTag(tagNamesSort, tagSeqSort, queryTags, allowDiffLengths = Fa
         if sortind < nTags and tag == tagSeqSort[sortind]:
             thistagname = tagNamesSort[sortind]
             markerfound = True
-        elif allowDiffLengths and sortind < nTags:
-            if tag.startswith(tagSeqSort[sortind - 1]):
+        elif allowDiffLengths:
+            if sortind > 0 and tag.startswith(tagSeqSort[sortind - 1]):
                 thistagname = tagNamesSort[sortind - 1]
                 markerfound = True
-            if tagSeqSort[sortind].startswith(tag) and not tagSeqSort[sortind + 1].startswith(tag):
+                # adjust the matching index to check for multiples later
+                sortind -= 1
+                while sortind > 0 and tagSeqSort[sortind] == tagSeqSort[sortind - 1]:
+                    sortind -= 1
+            if sortind < nTags and tagSeqSort[sortind].startswith(tag) and not \
+              (sortind < nTags - 1 and tagSeqSort[sortind] != tagSeqSort[sortind + 1] and tagSeqSort[sortind + 1].startswith(tag)):
                 thistagname = tagNamesSort[sortind]
                 markerfound = True
         if markerfound:
             thismarkername = thistagname[:thistagname.find('_')]
             markersOut.add(thismarkername)
+            # add more if it matches multiples
+            while sortind < len(tagSeqSort) - 1 and (tagSeqSort[sortind] == tagSeqSort[sortind + 1] or \
+              (allowDiffLengths and tagSeqSort[sortind + 1].startswith(tag))):
+                thistagname = tagNamesSort[sortind + 1]
+                thismarkername = thistagname[:thistagname.find('_')]
+                markersOut.add(thismarkername)
+                sortind += 1
+            while allowDiffLengths and sortind > 0 and tag.startswith(tagSeqSort[sortind - 1]):
+                thistagname = tagNamesSort[sortind - 1]
+                thismarkername = thistagname[:thistagname.find('_')]
+                markersOut.add(thismarkername)
+                sortind -= 1
+                
     return markersOut
     
 def sortTagsBySeq(tags):
@@ -1684,27 +1703,96 @@ def compareTagSets(oldtags, newtags, perfectMatch = False, allowDiffLengths = Tr
                 resultDict[thismarker] = mrkrmatch.pop()
     return resultDict
     
-def consolidateTagSets(oldtags, newtags):
+def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
     '''Allowing for multiple tags per marker, and for tag sets that do not completely overlap
        between old and new markers, make a consolidated set of tags and marker names.  For use
        by Tag Manager when there are multiple alleles.'''
     oldtags_sort = sortTagsBySeq(oldtags) # old tag sequences sorted for binary searching
-    oldmarkers = extractMarkers(oldtags_sort[0]) # get marker indices in tag lists
-    newmarkers = extractMarkers(newtags[0])
-    tagsOut = [[], []] # tags to output (same format as readTags functions)
-    
+    oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
+    oldmarkerSort = sorted(oldmarkers[0])
+    oldmarkerIndSort = [x[1] for x in sorted(zip(oldmarkers[0], range(len(oldmarkers[0]))))]
    
     # first, find any to consolidate in old tags
-    oldDupIndex = [i for i in range(1, nOldTags) if oldtagSort[i] == oldtagSort[i-1]]
-    for i in oldDupIndex:
-        tagname2 = oldtags[0][oldtagIndSort[i]]
-        marker2 = tagname2[:tagname2.find('_')]
-        tagname1 = oldtags[0][oldtagIndSort[i-1]]
-        marker1 = tagname1[:tagname1.find('_')]
-        if marker1 not in oldmarkers[0]:
-            pass
-        tags1 = [oldtags[1][ti] for ti in oldmarkers[1][oldmarkers[0].index(marker1)][1]]
-    pass
+    oldtags_consolidated = [[], []]
+    dupmarkers = set() # markers that have been consolidated
+    for mi in range(len(oldmarkers[0])):
+        thismarker = oldmarkers[0][mi]
+        if thismarker in dupmarkers:
+            continue # skip if this one was already merged into another marker
+        theseseq = [oldtags[1][i] for i in oldmarkers[1][mi][1]]
+        thislookup = lookupMarkerByTag(oldtags_sort[0], oldtags_sort[1], theseseq, allowDiffLengths = allowDiffLengths)
+        assert thismarker in thislookup, "Marker {} not found in lookup".format(thismarker)
+        thislookup.remove(thismarker)
+        for mrkr in thislookup: # loop through additional markers that match this one
+            dupmarkers.add(mrkr)
+            di = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, mrkr)]
+            assert oldmarkerSort[di] == mrkr, "Duplicate marker mismatch at {} {}".format(thismarker, mrkr)
+            seqtoadd = [oldtags[1][i] for i in oldmarkers[1][di][1] if oldtags[1][i] not in theseseq]
+            if allowDiffLengths: # if one tag is shorter version of other, keep the longer version
+                for sNew in seqtoadd:
+                    for sOldI in range(len(theseseq)):
+                        sOld = theseseq[sOldI]
+                        if sOld.startswith(sNew): # don't need to add is new is just shorter version of old
+                            if sNew in seqtoadd: # check that the new tag hasn't already been removed
+                                seqtoadd.remove(sNew)
+                        if sNew.startswith(sOld):
+                            theseseq[sOldI] = sNew
+                            seqtoadd.remove(sNew)
+            theseseq.extend(seqtoadd)
+        # add sequences and tag names to list
+        thiscompare = compareTags(theseseq)
+        nseq = len(theseseq)
+        nSNPs = len(thiscompare)
+        allelenames = ["".join([thiscompare[i][1][t] for i in range(nSNPs)]) for t in range(nseq)]
+        tagnames = ["{}_{}_{}".format(thismarker, allelenames[i], i) for i in range(nseq)]
+        oldtags_consolidated[0].extend(tagnames)
+        oldtags_consolidated[1].extend(theseseq)
+
+    if newtags == None:
+        tagsOut = oldtags_consolidated
+    else:
+        newtags_consolidated = consolidateTagSets(newtags, newtags = None, allowDiffLengths = allowDiffLengths)
+        newtags_sort = sortTagsBySeq(newtags_consolidated)
+        newmarkers = extractMarkers(newtags_consolidated[0])
+        newmarkerSort = sorted(newmarkers[0])
+        newmarkerIndSort = [x[1] for x in sorted(zip(newmarkers[0], range(len(newmarkers[0]))))]
+        oldmarkers = extractMarkers(oldtags_consolidated[0])
+        tagsOut = [[], []] # tags to output (same format as readTags functions)
+        newmarkers_matched = set()
+        for mi in range(len(oldmarkers[0])):
+            thismarker = oldmarkers[0][mi]
+            theseseq = [oldtags_consolidated[1][i] for i in oldmarkers[1][mi][1]]
+            thislookup = lookupMarkerByTag(newtags_sort[0], newtags_sort[1], theseseq, allowDiffLengths = allowDiffLengths)
+            for mrkr in thislookup:
+                newmarkers_matched.add(mrkr)
+                di = newmarkerIndSort[bisect.bisect_left(newmarkerSort, mrkr)]
+                seqtoadd = [newtags_consolidated[1][i] for i in newmarkers[1][di][1] if newtags_consolidated[1][i] not in theseseq]
+                if allowDiffLengths: # if one tag is shorter version of other, keep the longer version
+                    for sNew in seqtoadd:
+                        for sOldI in range(len(theseseq)):
+                            sOld = theseseq[sOldI]
+                            if sOld.startswith(sNew): # don't need to add is new is just shorter version of old
+                                if sNew in seqtoadd: # check that the new tag hasn't already been removed
+                                    seqtoadd.remove(sNew)
+                            if sNew.startswith(sOld):
+                                theseseq[sOldI] = sNew
+                                seqtoadd.remove(sNew)
+                theseseq.extend(seqtoadd)
+            # add sequences and tag names to list
+            thiscompare = compareTags(theseseq)
+            nseq = len(theseseq)
+            nSNPs = len(thiscompare)
+            allelenames = ["".join([thiscompare[i][1][t] for i in range(nSNPs)]) for t in range(nseq)]
+            tagnames = ["{}_{}_{}".format(thismarker, allelenames[i], i) for i in range(nseq)]
+            tagsOut[0].extend(tagnames)
+            tagsOut[1].extend(theseseq)
+        # add any new markers that weren't a match for an old marker
+        for mi in range(len(newmarkers[0])):
+            if newmarkers[0][mi] in newmarkers_matched:
+                continue # skip if matched
+            tagsOut[0].extend([newtags_consolidated[0][i] for i in newmarkers[1][mi][1]])
+            tagsOut[1].extend([newtags_consolidated[1][i] for i in newmarkers[1][mi][1]])
+    return tagsOut
 
 def allColumns(extracollist):
     '''Combine all column names into one list.'''
