@@ -364,7 +364,7 @@ def readBarcodeKeyfile(filename, forSplitter=False):
         result = None
     return result
 
-def compareTags(taglist):
+def compareTags(taglist, trim = True):
     '''Find SNP alleles within a set of sequence tags representing the
        same locus.'''
     assert type(taglist) is list, "taglist must be list."
@@ -372,11 +372,15 @@ def compareTags(taglist):
            "taglist must be a list of ACGT strings."
     # make sure all tags are same length
     if len(set([len(t) for t in taglist])) > 1:
-        minlen = min([len(t) for t in taglist])
-        taglist = [tag[:minlen] for tag in taglist]
+        if trim: # trim down to minimum length
+            minlen = min([len(t) for t in taglist])
+            taglist = [tag[:minlen] for tag in taglist]
+        else: # pad out to maximum length
+            maxlen = max([len(t) for t in taglist])
+            taglist = [tag.ljust(maxlen, 'N') for tag in taglist]
     # get index(es) and nucleotides for variable sites
     result =[(i, [t[i] for t in taglist]) for i in range(len(taglist[0])) \
-                 if len(set([t[i] for t in taglist])) > 1]
+                 if len(set([t[i] for t in taglist if t[i] != 'N'])) > 1]
     return result
 
 def readTags_UNEAK_FASTA(filename, toKeep = None):
@@ -750,7 +754,15 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 # make marker name and add to dictionary
                 marker ="{}-{:0>{width}}-{}".format(chrom, pos, strand, width=numdig)
                 if marker in tempseq.keys():
-                    tempseq[marker].append(sequence)
+                    # check that an overlapping version of this sequence isn't already there (keep shorter version).
+                    # can happen rarely with restriction site polymorphism.
+                    addthisseq = True
+                    tempseq[marker] = [ts for ts in tempseq[marker] if not ts.startswith(sequence)]
+                    for exstseq in tempseq[marker]:
+                        if sequence.startswith(exstseq):
+                            addthisseq = False # this one is longer, don't add it
+                    if addthisseq:
+                        tempseq[marker].append(sequence)
                 else:
                     tempseq[marker] = [sequence]
 
@@ -760,7 +772,7 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
             ntags = len(thesetags)
             if binaryOnly and ntags != 2:
                 continue
-            diff = compareTags(thesetags)
+            diff = compareTags(thesetags, trim = False)
 
             if toKeep != None or writeMarkerKey: # check if marker is in list to be retained
                 markerinfo = m.split('-')
