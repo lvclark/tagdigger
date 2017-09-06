@@ -38,8 +38,16 @@ if whichprog == '1':
     while SNPdb == None:
         SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
 
+    perfMtch = ''
+    while perfMtch not in {'Y', 'N'}:
+        perfMtch = input('Should markers be considered a match if only a subset of their tags match? (y/n) ').strip().upper()
+    adl = ''
+    while adl not in {'Y', 'N'}:
+        adl = input("Should tags be considered a match if one is a shorter version of the other? (y/n) ").strip().upper()
+
     print("Comparing tags...")
-    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = True, allowDiffLengths = False)
+    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = perfMtch == 'N', \
+                                               allowDiffLengths = adl == 'Y')
 
     # choice of which extra columns to include in output; generate numerical index
     inclExtr = ''
@@ -72,12 +80,12 @@ a = include all, s = select which to include, n = include none: ''').strip().upp
                     [SNPdb[1][0][i] for i in range(nHeader) if i in extracol])
         # write marker rows
         for q in sorted(compareDict.keys()): # loop through query marker names
-            dbmarker = compareDict[q]
-            if dbmarker == None:
+            if len(compareDict[q]) == 0:
                 cw.writerow([q, ''] + ['' for i in range(len(extracol))])
             else:
-                cw.writerow([q, dbmarker] + \
-                            [SNPdb[1][1][dbmarker][i] for i in range(nHeader) if i in extracol])
+                for dbmarker in compareDict[q]:
+                    cw.writerow([q, dbmarker] + \
+                          [SNPdb[1][1][dbmarker][i] for i in range(nHeader) if i in extracol])
 
 
 # Add markers to existing database
@@ -103,7 +111,7 @@ if whichprog == '2':
 
     print("\nCounting markers...")
     # get list of existing markers that had a match
-    matchedold = sorted([i for i in compareDict.values() if i != None])
+    matchedold = sorted([i[0] for i in compareDict.values() if len(i) == 1])
     # get list of all old markers
     allold = sorted(SNPdb[1][1].keys())
     # get a list of all new markers (original names; generate new names below)
@@ -150,11 +158,11 @@ if whichprog == '2':
     currentNum = startingNum
     unmatchednew = [] # to contain new names of new markers
     for m in allnew:
-        if compareDict[m] == None:
+        if len(compareDict[m]) != 1:
             thisnewname = "{}{:0{width}}".format(Prefix, currentNum, width = numDig)
             currentNum += 1
             unmatchednew.append(thisnewname)
-            compareDict[m] = thisnewname
+            compareDict[m] = [thisnewname]
     print('{} out of {} markers are new.'.format(len(unmatchednew), len(allnew)))
 
     # add sequences to tag database
@@ -163,7 +171,7 @@ if whichprog == '2':
     for t in range(len(tags[0])):
         thistagname = tags[0][t]
         thismarker = thistagname[:thistagname.find('_')]
-        thismarkerNEW = compareDict[thismarker]
+        thismarkerNEW = compareDict[thismarker][0]
         if thismarkerNEW in unmatchednew:
             thisallelePlusUnd = thistagname[thistagname.rfind('_'):]
             tagsNEW[0].append(thismarkerNEW + thisallelePlusUnd) # new tag name
@@ -187,7 +195,7 @@ if whichprog == '2':
     if addTab == 'Y':
         while addTable == None:
             addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(),
-                                                     markerDict = compareDict)
+                                                     markerDict = compareDict) ### will need to update this function
         newheaders = addTable[0]
         oldheaders = SNPdb[1][0]
         if len(set(newheaders) & set(oldheaders)) > 0:

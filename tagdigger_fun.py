@@ -1696,20 +1696,22 @@ def compareTagSets(oldtags, newtags, perfectMatch = False, allowDiffLengths = Tr
 
     for m in range(NnewMarkers): # loop through markers
         thismarker = newmarkers[0][m] # marker name
+        resultDict[thismarker] = []
         # tag sequences for this marker
         theseseq = [newtags[1][i] for i in newmarkers[1][m][1]]
         mrkrmatch = lookupMarkerByTag(oldtags_sort[0], oldtags_sort[1], theseseq, allowDiffLengths = allowDiffLengths)
-        if len(mrkrmatch) > 1:
-            raise Exception("Marker {} matches multiple markers {}; consolidation of markers may be necessary.".format(thismarker, ", ".join(sorted(mrkrmatch))))
-        if len(mrkrmatch) == 1:
-            if perfectMatch:
-                oldmarker = mrkrmatch.pop()
-                oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
-                oldseq = [oldtags_sort[1][i] for i in oldmarkers[1][oi][1]]
-                if set(oldseq) == set(theseseq):
-                    resultDict[thismarker] = oldmarker
-            else:
-                resultDict[thismarker] = mrkrmatch.pop()
+        if perfectMatch and len(mrkrmatch) == 1:
+            oldmarker = mrkrmatch.pop()
+            oi = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, oldmarker)]
+            oldseq = [oldtags_sort[1][i] for i in oldmarkers[1][oi][1]]
+            if allowDiffLengths:
+                minlen = min([len(seq) for seq in theseseq + oldseq])
+                oldseq = [seq[:minlen] for seq in oldseq]
+                theseseq = [seq[:minlen] for seq in theseseq]
+            if set(oldseq) == set(theseseq):
+                resultDict[thismarker].append(oldmarker)
+        elif not perfectMatch:
+            resultDict[thismarker].extend(mrkrmatch)
     return resultDict
     
 def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
