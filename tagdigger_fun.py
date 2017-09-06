@@ -1461,22 +1461,19 @@ def mergeTags(tags):
     '''Given a list of sequences, produce an output string in "merged" format,
        with square brackets surrounding the variable region and a forward
        slash separating the two variants.'''
-    # make sure tags are same length
     taglen = [len(t) for t in tags]
-    minlen = min(taglen)
     ntags = len(tags)
-    if not all([tl == minlen for tl in taglen]):
-        tags = [t[:minlen] for t in tags]
-    x = compareTags(tags) # has assert to check ACGT
+    longesttag = [tags[i] for i in range(ntags) if taglen[i] == max(taglen)][0]
+    x = compareTags(tags, trim = False) # has assert to check ACGT
     assert len(x) > 0, "All tags in set are identical."
     variantpositions = [y[0] for y in x]
     minvar = min(variantpositions)
-    maxvar = max(variantpositions)
+    maxvar = max(variantpositions) if len(set(taglen)) == 1 else max(taglen) - 1
     # get invariant portions of tags
-    invarstart = tags[0][:minvar]
-    invarend = tags[0][maxvar + 1:]
+    invarstart = longesttag[:minvar]
+    invarend = longesttag[maxvar + 1:]
     # get variant portions
-    var = [t[minvar:(maxvar+1)] for t in tags]
+    var = [t[minvar:(maxvar+1)] if len(t) > maxvar else t[minvar:] for t in tags]
     return invarstart + '[' + '/'.join(var) + ']' + invarend
 
 def mergedTagList(tags):
