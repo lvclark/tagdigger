@@ -1383,12 +1383,14 @@ def exportFasta(filename, namelist, seqlist):
                     mycon.write(mtags[0] + '\n')
                 else:
                     # find variable sites
-                    ctags = compareTags(mtags)
+                    ctags = compareTags(mtags, trim = False)
                     # write the first non-variable portion of the tag
                     mycon.write(mtags[0][:ctags[0][0]])
                     # cycle through variable sites and the following sequence
                     for c in range(len(ctags)):
-                        mycon.write(IUPAC_codes[frozenset(ctags[c][1])])
+                        thisset = set(ctags[c][1])
+                        thisset.discard('N')
+                        mycon.write(IUPAC_codes[frozenset(thisset)])
                         if c == len(ctags)-1:
                             mycon.write(mtags[0][ctags[c][0] + 1:])
                         else:
@@ -1499,7 +1501,8 @@ def mergedTagList(tags):
 def exportFasta2(filename, markernames, mergedstrings):
     '''Take the merged tag strings produced by mergedTagList and write a FASTA
        file for alignment with software such as Bowtie2 or BLAST.  Use IUPAC
-       codes for variable nucleotides.'''
+       codes for variable nucleotides.
+       Deprecated function that only allows for two tags per marker'''
     assert len(markernames) == len(mergedstrings), \
            "Must have same number of marker names and merged strings."
     try:
@@ -1559,7 +1562,12 @@ def readTabularData(filename, markerDict = None, ignoreSeq = False):
                         thismarker = markerDict[thismarker]
                     if ignoreSeq:
                         row.pop(si)
-                    dataDict[thismarker] = row
+                    if thismarker in dataDict:
+                        # consolidate two rows into one
+                        dataDict[thismarker] = [row[i] if row[i].strip() != "" else \
+                                                dataDict[thismarker][i] for i in range(len(row))]
+                    else:
+                        dataDict[thismarker] = row
                 rowcount += 1
         return [headers, dataDict]
     except IOError:
@@ -1714,10 +1722,12 @@ def compareTagSets(oldtags, newtags, perfectMatch = False, allowDiffLengths = Tr
             resultDict[thismarker].extend(mrkrmatch)
     return resultDict
     
-def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
+def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
+                       prefix = "Mrkr", numdig = 7, startnumnew = 1):
     '''Allowing for multiple tags per marker, and for tag sets that do not completely overlap
        between old and new markers, make a consolidated set of tags and marker names.  For use
-       by Tag Manager when there are multiple alleles.'''
+       by Tag Manager when there are multiple alleles.
+       prefix, numdig, and startnumnew are for indicating how new markers should be named.'''
     oldtags_sort = sortTagsBySeq(oldtags) # old tag sequences sorted for binary searching
     oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
     oldmarkerSort = sorted(oldmarkers[0])
@@ -1725,6 +1735,7 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
    
     # first, find any to consolidate in old tags
     oldtags_consolidated = [[], []]
+    markerMatchDict = dict() # keys are markers, items are lists of markers merged into them
     dupmarkers = set() # markers that have been consolidated
     for mi in range(len(oldmarkers[0])):
         thismarker = oldmarkers[0][mi]
@@ -1758,11 +1769,14 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
         tagnames = ["{}_{}_{}".format(thismarker, allelenames[i], i) for i in range(nseq)]
         oldtags_consolidated[0].extend(tagnames)
         oldtags_consolidated[1].extend(theseseq)
+        markerMatchDict[thismarker] = sorted(thislookup)
+    print("{} markers consolidated into {} markers".format(len(oldmarkers[0]), len(markerMatchDict)))
 
     if newtags == None:
         tagsOut = oldtags_consolidated
-    else:
-        newtags_consolidated = consolidateTagSets(newtags, newtags = None, allowDiffLengths = allowDiffLengths)
+    else: 
+        newtemp = consolidateTagSets(newtags, newtags = None, allowDiffLengths = allowDiffLengths)
+        newtags_consolidated = newtemp[0]
         newtags_sort = sortTagsBySeq(newtags_consolidated)
         newmarkers = extractMarkers(newtags_consolidated[0])
         newmarkerSort = sorted(newmarkers[0])
@@ -1789,6 +1803,8 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
                                 theseseq[sOldI] = sNew
                                 seqtoadd.remove(sNew)
                 theseseq.extend(seqtoadd)
+                markerMatchDict[thismarker].append(mrkr)
+                markerMatchDict[thismarker].extend(newtemp[1][mrkr]) # new markers consolidated into this new marker
             # add sequences and tag names to list
             thiscompare = compareTags(theseseq)
             nseq = len(theseseq)
@@ -1797,13 +1813,23 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True):
             tagnames = ["{}_{}_{}".format(thismarker, allelenames[i], i) for i in range(nseq)]
             tagsOut[0].extend(tagnames)
             tagsOut[1].extend(theseseq)
-        # add any new markers that weren't a match for an old marker
+        # add any new markers that weren't a match for an old marker.  Give them new names.
         for mi in range(len(newmarkers[0])):
-            if newmarkers[0][mi] in newmarkers_matched:
+            thismarker = newmarkers[0][mi]
+            if thismarker in newmarkers_matched:
                 continue # skip if matched
-            tagsOut[0].extend([newtags_consolidated[0][i] for i in newmarkers[1][mi][1]])
-            tagsOut[1].extend([newtags_consolidated[1][i] for i in newmarkers[1][mi][1]])
-    return tagsOut
+            theseseq = [newtags_consolidated[1][i] for i in newmarkers[1][mi][1]]
+            newmrkrname = "{}{:0{width}}".format(prefix, startnumnew, width = numdig)
+            startnumnew += 1
+            thesetagnames = [newtags_consolidated[0][i].replace(thismarker, newmrkrname) \
+              for i in newmarkers[1][mi][1]] 
+            tagsOut[0].extend(thesetagnames)
+            tagsOut[1].extend(theseseq)
+            markerMatchDict[newmrkrname] = [thismarker]
+            markerMatchDict[newmrkrname].extend(newtemp[1][thismarker])
+        print("{} markers consolidated into {} markers".format(len(oldmarkers[0]) + len(newmarkers[0]), \
+                                                               len(markerMatchDict)))
+    return [tagsOut, markerMatchDict]
 
 def allColumns(extracollist):
     '''Combine all column names into one list.'''

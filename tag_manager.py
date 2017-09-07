@@ -92,14 +92,25 @@ a = include all, s = select which to include, n = include none: ''').strip().upp
 if whichprog == '2':
     print("\nNew tags to add to marker database:")
     tags = tagdigger_fun.readTags_interactive()
+    # get a list of all new markers (original names; generate new names below)
+    allnew = tagdigger_fun.extractMarkers(tags[0])[0]
 
     SNPdb = None  # database
     while SNPdb == None:
         SNPdb = tagdigger_fun.readMarkerDatabase(input("Name of CSV file containing marker database: ").strip())
+    # get list of all old markers
+    allold = sorted(SNPdb[1][1].keys())
 
-    print("Comparing tags...")
-    compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = True, allowDiffLengths = False)
-
+    perfMtch = ''
+    while perfMtch not in {'Y', 'N'}:
+        perfMtch = input('Should markers be considered a match if only a subset of their tags match? (y/n) ').strip().upper()
+    perfectMatch = perfMtch == 'N'
+    if perfectMatch:
+        adl = 'N'
+    else:
+        adl = ''
+        while adl not in {'Y', 'N'}:
+            adl = input("Should tags be considered a match if one is a shorter version of the other? (y/n) ").strip().upper()
     # optionally include original marker names
     inclOrig = ""
     origColName = ""
@@ -109,15 +120,18 @@ if whichprog == '2':
         while origColName == "":
             origColName = input("Column header for original marker names: ").strip()
 
-    print("\nCounting markers...")
-    # get list of existing markers that had a match
-    matchedold = sorted([i[0] for i in compareDict.values() if len(i) == 1])
-    # get list of all old markers
-    allold = sorted(SNPdb[1][1].keys())
-    # get a list of all new markers (original names; generate new names below)
-    allnew = tagdigger_fun.extractMarkers(tags[0])[0]
-    # total number of markers to be output
-    nMrkr = len(allold) - len(matchedold) + len(allnew)
+    if perfectMatch:
+        print("Comparing tags...")
+        compareDict = tagdigger_fun.compareTagSets(SNPdb[0], tags, perfectMatch = perfectMatch, \
+                                                   allowDiffLengths = adl == 'Y')
+        print("\nCounting markers...")
+        # get list of existing markers that had a match
+        matchedold = sorted([i[0] for i in compareDict.values() if len(i) == 1])
+        # total number of markers to be output
+        nMrkr = len(allold) - len(matchedold) + len(allnew)
+    else:
+        nMrkr = len(allold) + len(allnew)
+
     minDig = math.ceil(math.log10(nMrkr)) # minimum number of digits
     # get old marker prefix, number of digits, and last number
     lastold = allold[-1]
@@ -138,7 +152,7 @@ if whichprog == '2':
     if prefixChoice != '':
         Prefix = prefixChoice
 
-    print('\nTotal number of markers is {}.'.format(nMrkr))
+    print('\nTotal number of markers is {}{}.'.format(nMrkr, "" if perfectMatch else " or less"))
     print('Minimum number of digits is {}.'.format(minDig))
     digChoice = 'a'
     while (not set(digChoice) < set('0123456789')) or (numDig < minDig):
@@ -153,29 +167,36 @@ if whichprog == '2':
         if set(numChoice) < set('0123456789') and len(numChoice) > 0:
             startingNum = int(numChoice)
 
-    # generate new names for unmatched markers
-    print("\nGenerating new marker names...")
-    currentNum = startingNum
-    unmatchednew = [] # to contain new names of new markers
-    for m in allnew:
-        if len(compareDict[m]) != 1:
-            thisnewname = "{}{:0{width}}".format(Prefix, currentNum, width = numDig)
-            currentNum += 1
-            unmatchednew.append(thisnewname)
-            compareDict[m] = [thisnewname]
-    print('{} out of {} markers are new.'.format(len(unmatchednew), len(allnew)))
+    if perfectMatch:
+        # generate new names for unmatched markers
+        print("\nGenerating new marker names...")
+        currentNum = startingNum
+        unmatchednew = [] # to contain new names of new markers
+        for m in allnew:
+            if len(compareDict[m]) != 1:
+                thisnewname = "{}{:0{width}}".format(Prefix, currentNum, width = numDig)
+                currentNum += 1
+                unmatchednew.append(thisnewname)
+                compareDict[m] = [thisnewname]
+        print('{} out of {} markers are new.'.format(len(unmatchednew), len(allnew)))
 
-    # add sequences to tag database
-    print("Adding new sequences to tag database...")
-    tagsNEW = [[], []] # later combine these two lists with those in SNPdb[0]
-    for t in range(len(tags[0])):
-        thistagname = tags[0][t]
-        thismarker = thistagname[:thistagname.find('_')]
-        thismarkerNEW = compareDict[thismarker][0]
-        if thismarkerNEW in unmatchednew:
-            thisallelePlusUnd = thistagname[thistagname.rfind('_'):]
-            tagsNEW[0].append(thismarkerNEW + thisallelePlusUnd) # new tag name
-            tagsNEW[1].append(tags[1][t]) # tag sequence
+        # add sequences to tag database
+        print("Adding new sequences to tag database...")
+        tagsNEW = [[], []] # later combine these two lists with those in SNPdb[0]
+        for t in range(len(tags[0])):
+            thistagname = tags[0][t]
+            thismarker = thistagname[:thistagname.find('_')]
+            thismarkerNEW = compareDict[thismarker][0]
+            if thismarkerNEW in unmatchednew:
+                thisallelePlusUnd = thistagname[thistagname.rfind('_'):]
+                tagsNEW[0].append(thismarkerNEW + thisallelePlusUnd) # new tag name
+                tagsNEW[1].append(tags[1][t]) # tag sequence
+    else:
+        print("Consolidating old and new markers, and making new marker names...")
+        mycons = tagdigger_fun.consolidateTagSets(SNPdb[0], tags, allowDiffLengths = adl == 'Y', \
+                                                  prefix = Prefix, numdig = numDig, startnumnew = startingNum)
+        alltags = mycons[0] # tag names and sequences ready for output
+        compareDictRev = mycons[1] # keys are output marker names, values are lists of other marker names
 
     # optionally export FASTA of new sequences only
     exptFA = ""
@@ -185,6 +206,10 @@ if whichprog == '2':
         FAfile = ''
         while FAfile == '':
             FAfile = input("Name for FASTA file: ").strip()
+        if not perfectMatch:
+            firstNewMrkr = "{}{:0{width}}".format(Prefix, startingNum, width = numDig)
+            firstNewIndex = min([i for i in range(len(alltags[0])) if alltags[0][i].startswith(firstNewMrkr+"_")])
+            tagsNEW = [alltags[0][firstNewIndex:], alltags[1][firstNewIndex:]]
         tagdigger_fun.exportFasta(FAfile, tagsNEW[0], tagsNEW[1])
 
     # option to also add any tabular data
@@ -193,9 +218,19 @@ if whichprog == '2':
     while addTab not in {'Y', 'N'}:
         addTab = input("\nAdd additional columns to database, referenced by original marker names? (y/n) ").strip().upper()
     if addTab == 'Y':
+        # make a dictionary with keys as the original names (for markers being added) and values as the new names
+        if perfectMatch:
+            markerDict = {k: compareDict[k][0] for k in compareDict.keys()}
+        else:
+            print("Preparing to match new names to original names...")
+            markerDict = dict()
+            for k in compareDictRev.keys():
+                theseorig = [mrkr for mrkr in compareDictRev[k] if mrkr in allnew]
+                for mrkr in theseorig:
+                    markerDict[mrkr] = k
         while addTable == None:
             addTable = tagdigger_fun.readTabularData(input("Name of CSV file with additional columns: ").strip(),
-                                                     markerDict = compareDict) ### will need to update this function
+                                                     markerDict = markerDict) 
         newheaders = addTable[0]
         oldheaders = SNPdb[1][0]
         if len(set(newheaders) & set(oldheaders)) > 0:
@@ -218,11 +253,18 @@ if whichprog == '2':
 
     # add original marker names
     if inclOrig == 'Y':
-        combinedTables.append([[origColName], {compareDict[k]: [k] for k in compareDict.keys()}])
+        if perfectMatch:
+            combinedTables.append([[origColName], {compareDict[k][0]: [k] for k in compareDict.keys()}])
+        else:
+            combinedTables.append([[origColName], {k: [" ".join(compareDictRev[k])] for \
+                                                   k in compareDictRev.keys()}])
 
     # output
     print('\nMaking merged tag sequences...')
-    mymerged = tagdigger_fun.mergedTagList([SNPdb[0][0] + tagsNEW[0], SNPdb[0][1] + tagsNEW[1]])
+    if perfectMatch:
+        mymerged = tagdigger_fun.mergedTagList([SNPdb[0][0] + tagsNEW[0], SNPdb[0][1] + tagsNEW[1]])
+    else:
+        mymerged = tagdigger_fun.mergedTagList(alltags)
     if mymerged == None:
         print("Please check your input and then re-run the program.")
     else:
@@ -332,7 +374,7 @@ if whichprog == '4':
         FAfile = ''
         while FAfile == '':
             FAfile = input("Name for FASTA file: ").strip()
-        tagdigger_fun.exportFasta2(FAfile, markerNames, markers[1])
+        tagdigger_fun.exportFasta(FAfile, tags[0], tags[1])
 
     print('\nOptions for exporting SNP database:')
     # optionally include original marker names
