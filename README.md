@@ -4,7 +4,7 @@ TagDigger is a program for processing FASTQ files from genotyping-by-sequencing 
 
 If the software does not seem to be functioning properly, please file an Issue or otherwise notify me.
 
-In addition to the main program tagdigger_interactive.py, four other programs, tagdigger_script.py, barcode_splitter.py, and tag_manager.py, exp_frag_size.py provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
+In addition to the main program tagdigger_interactive.py, five other programs, tagdigger_script.py, barcode_splitter.py, barcode_splitter_script.py, tag_manager.py, and exp_frag_size.py provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
 
 An overview of the software is also available in a [slideshow](https://sites.google.com/site/lindsayvclarkgenetics/home/files/151029%20lab%20meeting%20TagDigger.pdf?attredirects=0&d=1).
 
@@ -38,7 +38,7 @@ On Windows, TagDigger can be launched simply by double-clicking the file "tagdig
 
 Alternatively, on any operating system, you can use the shell or command prompt to launch TagDigger.  In the shell, `cd` [(change directory)](http://www.digitalcitizen.life/command-prompt-how-use-basic-commands) to the directory where the TagDigger Python files (the files in this GitHub repository) are located, and type `python tagdigger_interactive.py` (or `python` and the name of the program that you want to use).
 
-The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tagdigger_script.py", "tag_manager.py", "barcode_splitter.py", and "exp_frag_size.py" for the respective program to work.
+The file "tagdigger_fun.py" must be in the same folder as "tagdigger_interactive.py", "tagdigger_script.py", "tag_manager.py", "barcode_splitter.py", "barcode_spliter_script.py", and "exp_frag_size.py" for the respective program to work.
 
 If you find that you have made a mistake in your input and can't go back, simply close the window running TagDigger and re-launch the program.
 
@@ -169,7 +169,7 @@ If tags represent pairs of binary SNPs, with alleles labeled '0' or '1', a CSV o
 
 # Barcode splitter
 
-TagDigger also includes a program for splitting one FASTQ file into multiple files according to barcode.  FASTQ files can be in uncompressed or gzip format as described above.  The barcode key file should also be in the format described above, but with column headers "Input File", "Barcode", and "Output File".  Download this repository and double-click "barcode_splitter.py" to launch the program.
+TagDigger also includes a program for splitting one FASTQ file into multiple files according to barcode.  FASTQ files can be in uncompressed or gzip format as described above.  The barcode key file should also be in the format described above, but with column headers "Input File", "Barcode", and "Output File".  Download this repository and double-click "barcode_splitter.py" to launch the program.  A command-line version, "barcode_splitter_script.py" is also available.
 
 Although the main TagDigger program works with libraries from any enzyme combination, the barcode splitter currently only supports PstI-MspI and NsiI-MspI.  Available adapter sequences include those from [Poland *et al.* (2012)](http://dx.doi.org/10.1371/journal.pone.0032253) and those used in the [Sacks lab](http://openwetware.org/wiki/Sacks:RAD-seq), designed by Megan Hall.
 
