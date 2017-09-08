@@ -1749,7 +1749,7 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
         for mrkr in thislookup: # loop through additional markers that match this one
             dupmarkers.add(mrkr)
             di = oldmarkerIndSort[bisect.bisect_left(oldmarkerSort, mrkr)]
-            assert oldmarkerSort[di] == mrkr, "Duplicate marker mismatch at {} {}".format(thismarker, mrkr)
+            assert oldmarkers[0][di] == mrkr, "Duplicate marker mismatch at {} {}".format(thismarker, mrkr)
             seqtoadd = [oldtags[1][i] for i in oldmarkers[1][di][1] if oldtags[1][i] not in theseseq]
             if allowDiffLengths: # if one tag is shorter version of other, keep the longer version
                 for sNew in seqtoadd:
