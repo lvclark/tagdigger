@@ -179,7 +179,7 @@ Optionally, the barcode splitter can also generate a CSV file listing MD5 checks
 
 # Tag Manager
 
-A third program included with TagDigger, "tag_manager.py", can be used for creating universal names for markers across multiple projects.  It can read in tag sequences in any of the seven formats listed above.  Any number of tags per marker is allowed, although currently all tags must match for the marker to match.  Tag sequences are output in the "merged" format (e.g. `AACG[C/T]CCA`) in a CSV, with new marker names consisting of a user-specified prefix followed by a number.  The original marker names can optionally be included in the output, along with any other columns of data that the user provides in a separate CSV file.  For example, input from the the following files:
+A third program included with TagDigger, "tag_manager.py", can be used for creating universal names for markers across multiple projects.  It can read in tag sequences in any of the seven formats listed above.  Any number of tags per marker is allowed, and the user can decide whether all tags between markers must match in order for the markers to be considered a match, or whether markers that only have some tags in common will still be matched.  Tag sequences are output in the "merged" format (e.g. `AACG[C/T]CCA`) in a CSV, with new marker names consisting of a user-specified prefix followed by a number.  The original marker names can optionally be included in the output, along with any other columns of data that the user provides in a separate CSV file.  For example, input from the the following files:
 
 ```
 >TP276_query_64
