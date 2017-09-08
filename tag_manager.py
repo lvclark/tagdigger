@@ -4,7 +4,7 @@ import csv
 
 # Welcome message
 print('''
-        TagDigger v. 1.0 Tag Manager
+        TagDigger v. 1.1 Tag Manager
          Copyright Lindsay V. Clark
  Released under GNU General Public License v3
 ''')

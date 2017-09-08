@@ -3,7 +3,7 @@ import os
 
 # Welcome message
 print('''
-     TagDigger v. 1.0 Barcode Splitter
+     TagDigger v. 1.1 Barcode Splitter
         Copyright Lindsay V. Clark
 Released under GNU General Public License v3
 ''')
