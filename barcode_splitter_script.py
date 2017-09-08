@@ -14,6 +14,8 @@ parser.add_argument('-a', '--adapter', help = 'Name of the adapter set', require
 args = parser.parse_args()
 
 bckeys = tagdigger_fun.readBarcodeKeyfile(args.barcodefile, forSplitter = True)
+if bckeys == None:
+    raise Exception("Problem reading barcode file.")
 
 adapter = tagdigger_fun.adapters[args.adapter]
 
@@ -22,6 +24,12 @@ enzyme = args.adapter[:args.adapter.find("-")]
 cutsite = tagdigger_fun.enzymes[enzyme]
 
 fqfiles = sorted(bckeys.keys())
+
+fqok = [tagdigger_fun.isFastq(f) for f in fqfiles]
+if not all(fqok):
+    print("Cannot read the following as FASTQ files:")
+    print([fqfiles[i] for i in range(len(fqfiles)) if not fqok[i]])
+    raise Exception("Cannot read all FASTQ files.")
 
 for f in fqfiles:
   tagdigger_fun.barcodeSplitter(f, bckeys[f][0], bckeys[f][1], 
