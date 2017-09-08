@@ -622,7 +622,7 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
     '''Read tags from the catalog format produced by Stacks.'''
     try:
         alltags = dict() # keys are locus numbers, values are sequences
-        with open(tagsfile, mode = 'r') as mycon:
+        with gzip.open(tagsfile, mode = 'rt') if tagsfile.endswith('.gz') else open(tagsfile, mode = 'r') as mycon:
             tr = csv.reader(mycon, delimiter='\t')
             for row in tr:
                 if row[0].startswith("#"):
@@ -630,7 +630,7 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
                 if toKeep == None or row[2] in toKeep:
                     alltags[row[2]] = row[9]
         alleles = list() # tuples, where first item is locus number and second is haplotype
-        with open(allelesfile, mode = 'r') as mycon:
+        with gzip.open(allelesfile, mode = 'rt') if allelesfile.endswith('.gz') else open(allelesfile, mode = 'r') as mycon:
             ar = csv.reader(mycon, delimiter='\t')
             for row in ar:
                 if row[0].startswith("#"):
@@ -638,7 +638,7 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
                 if toKeep == None or row[2] in toKeep:
                     alleles.append((row[2], row[3]))
         positions = dict() # keys are locus numbers, values are lists of variant positions
-        with open(snpsfile, mode = 'r') as mycon:
+        with gzip.open(snpsfile, mode = 'rt') if snpsfile.endswith('.gz') else open(snpsfile, mode = 'r') as mycon:
             sr = csv.reader(mycon, delimiter='\t')
             for row in sr:
                 if row[0].startswith("#"):
