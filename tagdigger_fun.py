@@ -7,6 +7,7 @@ import hashlib
 import os
 import sys
 import bisect
+import re
 
 # confirm that Python 3 is being used.
 if sys.version_info.major < 3 or (sys.version_info.major == 3 and sys.version_info.minor < 3):
@@ -29,6 +30,14 @@ adapters = {'PstI-MspI-Hall': [('CCG^G', # Sacks lab, designed by Megan Hall (I 
                                 '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
             'NsiI-MspI-Hall': [('CCG^G', # Sacks lab, NsiI, with above adapters
                                 'CTCAGGCATCACTCGATTCCTCCGTCGTATGCCGTCTTCTGCTTG'),
+                               ('ATGCA^T',
+                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
+            'PstI-MspI-Clark': [('CCG^G', # Sacks lab, altered for full P7 sequence
+                                'CTCAGGCATCACTCGATTCCTATCTCGTATGCCGTCTTCTGCTTG'),
+                               ('CTGCA^G',
+                                '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
+            'NsiI-MspI-Clark': [('CCG^G', # Sacks lab, NsiI, with above adapters for full P7 sequence
+                                'CTCAGGCATCACTCGATTCCTATCTCGTATGCCGTCTTCTGCTTG'),
                                ('ATGCA^T',
                                 '[barcode]AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGTAGATCTCGGTGGTCGCCGTATCATT')],
             'PstI-MspI-Poland': [('CCG^G', # DOI: 10.1371/journal.pone.0032253
@@ -740,7 +749,7 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 # eliminate underscores in chromosome names
                 chrom = chrom.replace('_', '*')
                 # position
-                pos = mycolumns[3]
+                pos = int(mycolumns[3])
                 # strand
                 if myflags - 16 in {0, 1, 2, 8, 32, 64, 128}:
                     strand = "bot"
@@ -751,7 +760,10 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 if strand == 'bot':
                     sequence = reverseComplement(sequence)
                     # adjust position to begin at cut site
-                    pos = int(pos) + len(sequence) - 1
+                    cigar = mycolumns[5]
+                    deletions = sum([int(x[:-1]) for x in re.findall('\d+D', cigar)])
+                    insertions = sum([int(x[:-1]) for x in re.findall('\d+I', cigar)])
+                    pos = pos + len(sequence) - insertions + deletions - 1
 
                 # make marker name and add to dictionary
                 marker ="{}-{:0>{width}}-{}".format(chrom, pos, strand, width=numdig)
