@@ -750,6 +750,8 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 sequence = mycolumns[9]
                 if strand == 'bot':
                     sequence = reverseComplement(sequence)
+                    # adjust position to begin at cut site
+                    pos = int(pos) + len(sequence) - 1
 
                 # make marker name and add to dictionary
                 marker ="{}-{:0>{width}}-{}".format(chrom, pos, strand, width=numdig)
@@ -788,8 +790,7 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
                 if markerinfo[2] == 'top':
                     snppos = [pos + d[0] for d in diff]
                 else:
-                    taglength = len(thesetags[0])
-                    snppos = [pos + taglength - 1 - d[0] for d in diff]
+                    snppos = [pos - d[0] for d in diff]
                 # generate SNP names in TASSEL format
                 possiblenames = ['{}_{}'.format(chrom, p) for p in snppos]
                 # skip if none of these SNP names were in the list to keep
