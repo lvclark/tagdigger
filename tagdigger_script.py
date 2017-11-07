@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # script for running TagDigger in a non-interactive (scripted) way
 
