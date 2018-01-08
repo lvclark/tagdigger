@@ -6,6 +6,7 @@ import re
 from tagdigger_fun import reverseComplement, adapters
 import argparse
 import os
+import gzip
 
 # This script requires a SAM file listing alignments of unique RAD tags to a reference genome.
 # Also works on SAM file from UNEAK FASTA file, where there are two tags per marker, named
@@ -152,7 +153,11 @@ sequence = ""
 cnt = 0 # just for counting how many markers found
 
 for i in range(len(genomefiles)):
-    with open(genomefiles[i], 'r') as mycon:
+    try:
+        if genomefiles[i].endswith(".gz"):
+            mycon = gzip.open(genomefiles[i], 'rt')
+        else:
+            mycon = open(genomefiles[i], 'r')
         for line in mycon:
             if line[0] == ">": # sequence names
                 currseqnm = newseqnm # shift the new one to being the current one
@@ -197,6 +202,8 @@ for i in range(len(genomefiles)):
                 sequence = ""
             else:
                 sequence = sequence + line.strip().upper()
+    finally:
+        mycon.close()
             
 # write output file
 with open(outputfile, 'w', newline = '') as mycon:

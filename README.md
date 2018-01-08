@@ -228,7 +228,7 @@ At this time only a non-interactive version of the program is available.  Here i
 python exp_frag_size.py -s alignment.sam -g reference.fasta -o output.csv -w C:\Users\lvclark\Documents\bestgenome -c CTGCAG,CCGG
 ```
 
-where alignment.sam is replaced with the name of your SAM file, reference.fasta is replaced with the name of your reference genome file, output.csv is replaced with the desired name of a CSV file to output, and C:\Users\lvclark\Documents\bestgenome is the working directory where files should be read from and written to.  In this example, "CTGCAG,CCGG" represents the two restriction cutsites for the PstI-MspI system.  You can replace these with any number of cutsites for any other enzyme system.  As an alternative to using the -c option, you can use -e and either PstI-MspI or NsiI-MspI:
+where alignment.sam is replaced with the name of your SAM file, reference.fasta is replaced with the name of your reference genome file (which optionally can be gzipped and end in .gz), output.csv is replaced with the desired name of a CSV file to output, and C:\Users\lvclark\Documents\bestgenome is the working directory where files should be read from and written to.  In this example, "CTGCAG,CCGG" represents the two restriction cutsites for the PstI-MspI system.  You can replace these with any number of cutsites for any other enzyme system.  As an alternative to using the -c option, you can use -e and either PstI-MspI or NsiI-MspI:
 
 ```
 python exp_frag_size.py -s alignment.sam -g reference.fasta -o output.csv -w C:\Users\lvclark\Documents\bestgenome -e NsiI-MspI
