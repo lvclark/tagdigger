@@ -1473,7 +1473,7 @@ def readSAM(filename, varDict = None):
 def mergeTags(tags):
     '''Given a list of sequences, produce an output string in "merged" format,
        with square brackets surrounding the variable region and a forward
-       slash separating the two variants.'''
+       slash(es) separating the two or more variants.'''
     taglen = [len(t) for t in tags]
     ntags = len(tags)
     longesttag = [tags[i] for i in range(ntags) if taglen[i] == max(taglen)][0]
