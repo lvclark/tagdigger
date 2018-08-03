@@ -565,9 +565,8 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
        tag sequence with polymorphic nucleotides in square brackets separated
        by a forward slash.  Because this is the format for the SNP database
        produced by the tag manager, and that database might have multiple
-       markers that share alleles (since the tag manager currently treats all
-       markers as biallelic), this function differs from the other readTags
-       functions in how it handles duplicate tags.'''
+       markers that share alleles, this function differs from the other
+       readTags functions in how it handles duplicate tags.'''
     rowcount = 0
     namelist = []
     seqlist = []
