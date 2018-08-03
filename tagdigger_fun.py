@@ -190,7 +190,7 @@ def enumerate_cut_sites(cutsite):
     return cutsites
 
 def find_tags_fastq(fqfile, barcodes, tags, cutsite="TGCAG",
-                    maxreads=500000000, tassel_tagcount = False):
+                    maxreads=5000000000, tassel_tagcount = False):
     '''Make indexing trees for barcodes, cut sites, and tags, then go
     through a FASTQ file and count up instances of barcode*tag combos.'''
 
