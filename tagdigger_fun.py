@@ -617,8 +617,17 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
         result = None
     return result
 
-def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=False):
+def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly = False, version = 1):
     '''Read tags from the catalog format produced by Stacks.'''
+    # column numbers for different versions
+    locusID_tagfile = 2 if version == 1 else 1
+    sequence_tagfile = 9 if version == 1 else 5
+    locusID_allelesfile = 2 if version == 1 else 1
+    haplotype_allelesfile = 3 if version == 1 else 2
+    locusID_snpsfile = 2 if version == 1 else 1
+    position_snpsfile = 3 if version == 1 else 2
+
+    # read files
     try:
         alltags = dict() # keys are locus numbers, values are sequences
         with gzip.open(tagsfile, mode = 'rt') if tagsfile.endswith('.gz') else open(tagsfile, mode = 'r') as mycon:
@@ -626,27 +635,27 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly=F
             for row in tr:
                 if row[0].startswith("#"):
                     continue  # skip comment line
-                if toKeep == None or row[2] in toKeep:
-                    alltags[row[2]] = row[9]
+                if toKeep == None or row[locusID_tagfile] in toKeep:
+                    alltags[row[locusID_tagfile]] = row[sequence_tagfile]
         alleles = list() # tuples, where first item is locus number and second is haplotype
         with gzip.open(allelesfile, mode = 'rt') if allelesfile.endswith('.gz') else open(allelesfile, mode = 'r') as mycon:
             ar = csv.reader(mycon, delimiter='\t')
             for row in ar:
                 if row[0].startswith("#"):
                     continue
-                if toKeep == None or row[2] in toKeep:
-                    alleles.append((row[2], row[3]))
+                if toKeep == None or row[locusID_allelesfile] in toKeep:
+                    alleles.append((row[locusID_allelesfile], row[haplotype_allelesfile]))
         positions = dict() # keys are locus numbers, values are lists of variant positions
         with gzip.open(snpsfile, mode = 'rt') if snpsfile.endswith('.gz') else open(snpsfile, mode = 'r') as mycon:
             sr = csv.reader(mycon, delimiter='\t')
             for row in sr:
                 if row[0].startswith("#"):
                     continue
-                if toKeep == None or row[2] in toKeep:
-                    if row[2] in positions.keys():
-                        positions[row[2]].append(int(row[3]))
+                if toKeep == None or row[locusID_snpsfile] in toKeep:
+                    if row[locusID_snpsfile] in positions.keys():
+                        positions[row[locusID_snpsfile]].append(int(row[position_snpsfile]))
                     else:
-                        positions[row[2]] = [int(row[3])]
+                        positions[row[locusID_snpsfile]] = [int(row[position_snpsfile])]
         namelist = []
         seqlist = []
         # generate tag sequences
@@ -975,11 +984,14 @@ Available tag file formats are:
             tagsfile = input("Enter the name of the *.catalog.tags.tsv file: ").strip()
             snpsfile = input("Enter the name of the *.catalog.snps.tsv file: ").strip()
             allelesfile = input("Enter the name of the *.catalog.alleles.tsv file: ").strip()
+            stksversion = ""
+            while stksversion not in {"1", "2"}:
+                stksversion = input("Enter Stacks version (1 or 2): ").strip()[0]
             binchoice = ""
             while binchoice not in {'Y', 'N'}:
                 binchoice = input("Only retain binary markers? y/n: ").strip().upper()
             tags = readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = toKeep,
-                                   binaryOnly = binchoice == 'Y')
+                                   binaryOnly = binchoice == 'Y', version = int(stksversion))
         elif thischoice == '6':
             tagfile = input("Enter the file name: ").strip()
             binchoice = ""
