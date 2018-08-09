@@ -1898,3 +1898,22 @@ def consolidateExtraCols(extracollist):
         ac = allColumns(extracollist)
 
     return extracollist
+
+def remove_monomorphic_loci(namelist, seqlist, verbose = False):
+    '''Given a set of imported tags, filter out any belonging to monomorphic
+    loci.'''
+    assert len(namelist) == len(seqlist)
+    mrkrs = extractMarkers(namelist)
+    # Make a list with one item per marker, where each item is a list of tag
+    # indices for that marker.  Only keep polymorphic markers.
+    alindex = [m[1] for m in mrkrs[1] if len(m[1]) > 1]
+    
+    # subset tag names and sequences
+    newnamelist = []
+    newseqlist = []
+    for ai in alindex:
+        newnamelist.extend([namelist[i] for i in ai])
+        newseqlist.extend([seqlist[i] for i in ai])
+    if verbose:
+        print("{} tags removed belonging to monomorphic loci".format(len(seqlist) - len(newseqlist)))
+    return [newnamelist, newseqlist]
