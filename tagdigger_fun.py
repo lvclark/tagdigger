@@ -718,8 +718,8 @@ def readTags_Stacks(tagsfile, snpsfile, allelesfile, toKeep = None, binaryOnly =
         print(err.args[0])
         return None
 
-def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=False,
-                       keyfilename = None):
+def readTags_TASSELSAM(filename, toKeep = None, binaryOnly = False, noMonomorphic = False,
+                       writeMarkerKey = False, keyfilename = None):
     '''Read tag sequences from a SAM file and match marker names using the
        same conventions as TASSEL-GBSv2.
        toKeep: an optional list of marker names to keep, in TASSEL-GBSv2 format.
@@ -793,6 +793,8 @@ def readTags_TASSELSAM(filename, toKeep=None, binaryOnly=False, writeMarkerKey=F
             thesetags = tempseq[m]
             ntags = len(thesetags)
             if binaryOnly and ntags != 2:
+                continue
+            if noMonomorphic and ntags == 1:
                 continue
             diff = compareTags(thesetags, trim = False)
 
@@ -997,6 +999,9 @@ Available tag file formats are:
             binchoice = ""
             while binchoice not in {'Y', 'N'}:
                 binchoice = input("Only retain binary markers? y/n: ").strip().upper()
+            monochoice = 'Y' if binchoice == 'Y' else ''
+            while monochoice not in {'Y', 'N'}:
+                monochoice = input("Eliminate monomorphic markers? y/n: ").strip().upper()
             keychoice = ""
             while keychoice not in {'Y', 'N'}:
                 keychoice = input("Output a key file matching TASSEL-GBSv2 SNP names to TagDigger marker names? y/n: ").strip().upper()
@@ -1005,6 +1010,7 @@ Available tag file formats are:
                 kfn = input("File name for CSV file with key: ").strip()
             print("Reading {}...".format(tagfile))
             tags = readTags_TASSELSAM(tagfile, toKeep = toKeep, binaryOnly = binchoice == 'Y',
+                                      noMonomorphic = monochoice == 'Y',
                                       writeMarkerKey = keychoice == 'Y', keyfilename = kfn)
         elif thischoice == '7':
             tagfile = input("Enter the file name: ").strip()
