@@ -806,8 +806,7 @@ def readTags_TASSELSAM(filename, toKeep = None, binaryOnly = False, noMonomorphi
                 if chrom.startswith("CHR"):
                     chrom = chrom[3:]
                 # put S at the beginning of chromosome number ## is this always right?
-                if chrom[0] in set('0123456789'):
-                    chrom = 'S' + chrom
+                chrom = 'S' + chrom
                 pos = int(markerinfo[1]) # position of leftmost nucleotide
                 if markerinfo[2] == 'top':
                     snppos = [pos + d[0] for d in diff]
