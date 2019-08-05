@@ -596,7 +596,7 @@ def readTags_Merged(filename, toKeep = None, allowDuplicates=False):
                     subtags = row[ti][p1+1:p3].split('/') # list of versions of the variable region
                     subtags = [x.strip().upper() for x in subtags]
                     tags = [(row[ti][:p1] + x + row[ti][p3+1:]).upper().strip().replace('-','') for x in subtags]
-                    
+
                     if not allowDuplicates and any([x in seqlist for x in tags]):
                         print("Non-unique sequence found: line {0}.".format(rowcount+1))
                         print("Marker {} skipped.".format(mname))
@@ -861,7 +861,7 @@ def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
     theseseq = set() # set of sequences for the first marker
     allowedchars = {'A', 'C', 'G', 'T', '-', 'N'}
     linenum = 0
-    
+
     def seqformarker(seq, m):
         '''Process a group of sequences for one marker.'''
         # trim sequences to the length of the shortest one
@@ -871,10 +871,10 @@ def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
             seq = [s[:-1] for s in seq]
             seqlen -= 1
         # remove sequences with N's
-        seq = [s for s in seq if 'N' not in s] 
+        seq = [s for s in seq if 'N' not in s]
         seq = sorted(set(seq)) # sort alphabetically
         nseq = len(seq)
-        
+
         nl = [] # to add to namelist
         sl = [] # to add to seqlist
 
@@ -887,7 +887,7 @@ def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
             # make tag names
             nl = ['{}_{}_{}'.format(m, alstr[i], i) for i in range(nseq)]
         return [nl, sl]
-    
+
     try:  # Read file.
         with open(filename, mode = 'r') as mycon:
             for line in mycon:
@@ -918,7 +918,7 @@ def readTags_pyRAD(filename, toKeep = None, binaryOnly = False):
         print(err.args[0])
         result = None
     return result
-        
+
 def readMarkerNames(filename):
     '''Read in a simple list of marker names, and use for selecting markers
        to keep from a larger list of tags.'''
@@ -1665,7 +1665,7 @@ def lookupMarkerByTag(tagNamesSort, tagSeqSort, queryTags, allowDiffLengths = Fa
        set of markers with matching tags.  tagSeqSort is sorted list of tag sequences,
        tagNamesSort is a list of tag names in the same order (markername_allelename),
        and queryTags is a list of tag sequences for one marker.
-       If allowDiffLengths = True, the tags don't need to be the same length to match, 
+       If allowDiffLengths = True, the tags don't need to be the same length to match,
        but instead one can start with the other.  The tag in queryTags will be ignored
        if more than one tag in tagSeqSort starts with it.  The function will however
        accomodate multiple identical tags in tagSeqSort.'''
@@ -1705,9 +1705,9 @@ def lookupMarkerByTag(tagNamesSort, tagSeqSort, queryTags, allowDiffLengths = Fa
                 thismarkername = thistagname[:thistagname.find('_')]
                 markersOut.add(thismarkername)
                 sortind -= 1
-                
+
     return markersOut
-    
+
 def sortTagsBySeq(tags):
     '''Take tags output by one of the readTags functions, and return tags and tag
     names in the same format but sorted by sequence (for binary search).'''
@@ -1750,7 +1750,7 @@ def compareTagSets(oldtags, newtags, perfectMatch = False, allowDiffLengths = Tr
         elif not perfectMatch:
             resultDict[thismarker].extend(mrkrmatch)
     return resultDict
-    
+
 def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
                        prefix = "Mrkr", numdig = 7, startnumnew = 1):
     '''Allowing for multiple tags per marker, and for tag sets that do not completely overlap
@@ -1761,7 +1761,7 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
     oldmarkers = extractMarkers(oldtags[0]) # get marker indices in tag lists
     oldmarkerSort = sorted(oldmarkers[0])
     oldmarkerIndSort = [x[1] for x in sorted(zip(oldmarkers[0], range(len(oldmarkers[0]))))]
-   
+
     # first, find any to consolidate in old tags
     oldtags_consolidated = [[], []]
     markerMatchDict = dict() # keys are markers, items are lists of markers merged into them
@@ -1803,7 +1803,7 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
 
     if newtags == None:
         tagsOut = oldtags_consolidated
-    else: 
+    else:
         newtemp = consolidateTagSets(newtags, newtags = None, allowDiffLengths = allowDiffLengths)
         newtags_consolidated = newtemp[0]
         newtags_sort = sortTagsBySeq(newtags_consolidated)
@@ -1851,7 +1851,7 @@ def consolidateTagSets(oldtags, newtags = None, allowDiffLengths = True,
             newmrkrname = "{}{:0{width}}".format(prefix, startnumnew, width = numdig)
             startnumnew += 1
             thesetagnames = [newtags_consolidated[0][i].replace(thismarker, newmrkrname) \
-              for i in newmarkers[1][mi][1]] 
+              for i in newmarkers[1][mi][1]]
             tagsOut[0].extend(thesetagnames)
             tagsOut[1].extend(theseseq)
             markerMatchDict[newmrkrname] = [thismarker]
@@ -1913,7 +1913,7 @@ def remove_monomorphic_loci(namelist, seqlist, verbose = False):
     # Make a list with one item per marker, where each item is a list of tag
     # indices for that marker.  Only keep polymorphic markers.
     alindex = [m[1] for m in mrkrs[1] if len(m[1]) > 1]
-    
+
     # subset tag names and sequences
     newnamelist = []
     newseqlist = []
