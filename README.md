@@ -6,7 +6,7 @@ If the software does not seem to be functioning properly, please file an Issue o
 
 In addition to the main program tagdigger_interactive.py, five other programs, tagdigger_script.py, barcode_splitter.py, barcode_splitter_script.py, tag_manager.py, and exp_frag_size.py provide additional utilities.  See the [wiki](https://github.com/lvclark/tagdigger/wiki) for more information.
 
-An overview of the software is also available in a [slideshow](https://sites.google.com/site/lindsayvclarkgenetics/home/files/151029%20lab%20meeting%20TagDigger.pdf?attredirects=0&d=1).
+An overview of the software is also available in a [slideshow](https://raw.githubusercontent.com/lvclark/tagdigger/master/151029%20lab%20meeting%20TagDigger.pdf).
 
 TagDigger is released under the GNU General Public License v. 3.
 
